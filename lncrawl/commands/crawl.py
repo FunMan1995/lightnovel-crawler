@@ -156,10 +156,15 @@ def crawl(
     crawler.resolve_futures(image_futures, desc="Images", unit=" img")
 
     # create artifacts
+    format_set = set(formats)
+    if OutputFormat.epub in format_set or (format_set & ctx.binder.depends_on_epub):
+        format_set -= set([OutputFormat.epub])
+        formats = [OutputFormat.epub] + list(format_set)
+    else:
+        formats = list(format_set)
+
     artifacts: Dict[OutputFormat, Artifact] = {}
-    if ctx.binder.depends_on_epub & set(formats):
-        formats.insert(0, OutputFormat.epub)
-    for fmt in set(formats) & ctx.binder.available_formats:
+    for fmt in formats:
         with console.status(f"Generating {fmt}..."):
             artifact = ctx.binder.make_artifact(
                 novel.id,

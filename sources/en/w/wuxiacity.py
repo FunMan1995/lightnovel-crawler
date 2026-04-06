@@ -34,7 +34,6 @@ class WuxiaCityCrawler(Crawler):
             )
             for e in soup.find_all("li", class_="section-item")
         ]
-        print(entries)
         return [
             SearchResult(
                 title=e[0].text,
@@ -44,7 +43,7 @@ class WuxiaCityCrawler(Crawler):
             for e in entries
         ]
 
-    def read_novel_info(self):
+    def read_novel_info(self) -> None:
         soup = self.get_soup(f"{self.novel_url}/table-of-contents")
 
         self.novel_title = soup.select_one("h1.book-name").text
@@ -52,21 +51,19 @@ class WuxiaCityCrawler(Crawler):
         self.novel_cover = self.absolute_url(soup.select_one("div.book-img img[src]").get("src"))
 
         vol_id = 0
-        self.volumes.append(Volume(id=vol_id))
-        chapterItems = soup.select("ul.chapters li.oneline")
-        for chapter in chapterItems:
-            a = chapter.select_one("a.chapter-item")
+        soup = self.get_soup(f"{self.novel_url}/table-of-contents")
+        for a in reversed(soup.select(".book-chapters a[href]")):
+            a.decompose(".chapter-num")
             self.chapters.append(
                 Chapter(
-                    volume=vol_id,
                     id=len(self.chapters) + 1,
-                    url=self.absolute_url(a["href"]),
+                    volume=vol_id,
                     title=a.find("p").text,
-                    hash=a["href"].split("/")[-1],
+                    url=self.absolute_url(a["href"]),
                 )
             )
-        self.chapters.sort(key=lambda c: c["id"])
 
-    def download_chapter_body(self, chapter):
-        soup = self.get_soup(chapter["url"])
-        return self.cleaner.extract_contents(soup.find("div", class_="chapter-content"))
+    def download_chapter_body(self, chapter: Chapter) -> str:
+        soup = self.get_soup(chapter.url)
+        content = soup.select_one("#chapter-content, .chapter-content")
+        return self.cleaner.extract_contents(content)
