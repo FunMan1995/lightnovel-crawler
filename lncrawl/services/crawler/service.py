@@ -23,6 +23,7 @@ class CrawlerService:
     def get_crawler(self, user_id: str, novel_url: str):
         constructor = ctx.sources.get_crawler(novel_url)
         crawler = ctx.sources.init_crawler(constructor)
+        crawler.novel_url = novel_url
         can_login = getattr(crawler, "can_login", False)
         logged_in = getattr(crawler, "__logged_in__", False)
         if can_login and not logged_in:
@@ -33,7 +34,11 @@ class CrawlerService:
         return crawler
 
     def fetch_novel(
-        self, user_id: str, url: Union[str, HttpUrl], signal=Event(), crawler: Optional[Crawler] = None
+        self,
+        user_id: str,
+        url: Union[str, HttpUrl],
+        signal=Event(),
+        crawler: Optional[Crawler] = None,
     ) -> Novel:
         # validate url
         if isinstance(url, str):
