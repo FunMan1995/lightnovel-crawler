@@ -154,7 +154,9 @@ class SoupTemplate(CrawlerTemplate):
                 return
         if not novel.cover_url:
             meta_tag = soup.select_one(SoupTemplate.novel_cover_selector)
-            novel.cover_url = meta_tag.get("content")
+            src_url = meta_tag.get("content")
+            if src_url:
+                novel.cover_url = self.absolute_url(src_url)
 
     def parse_authors(self, soup: PageSoup, novel: Novel) -> None:
         """Parse and set the novel authors"""

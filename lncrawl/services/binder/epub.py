@@ -195,20 +195,23 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
         if signal.is_set():
             raise AbortedException()
 
-        volume_item = build_volume(volume)
-        book.add_item(volume_item)
-        spine.append(volume_item)
         volume_contents = []
         for chapter in ctx.chapters.list(volume_id=volume.id):
             if not chapter.is_available:
                 continue
             chapter_item = build_chapter(chapter)
             volume_contents.append(chapter_item)
-            book.add_item(chapter_item)
-            spine.append(chapter_item)
 
         if not volume_contents:
             continue
+
+        volume_item = build_volume(volume)
+        book.add_item(volume_item)
+        spine.append(volume_item)
+        for chapter_item in volume_contents:
+            book.add_item(chapter_item)
+            spine.append(chapter_item)
+
         volume_section = epub.Section(volume.title, href=volume_item.file_name)
         toc.append([volume_section, volume_contents])
 

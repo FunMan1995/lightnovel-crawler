@@ -78,7 +78,7 @@ class FreewebnovelTemplate(BrowserTemplate):
             )
         selectors = list(filter(None, set(selectors)))
 
-        body_tag = soup.select_one(".m-read")
+        body_tag = soup.select_one(self.chapter_body_selector)
         normalized_body = self.normalize_text(body_tag.outer_html)
         normalized_soup = PageSoup.create(normalized_body, parser="html.parser")
         for promo_selector in selectors:
