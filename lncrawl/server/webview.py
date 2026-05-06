@@ -5,6 +5,7 @@ import threading
 import webview
 
 from ..commands.server import server
+from ..config import APP_DIR
 from ..context import ctx
 from ..dao.enums import UserRole
 
@@ -44,4 +45,13 @@ def start() -> None:
         width=1280,
         height=800,
     )
-    webview.start()
+
+    # Persist WebView2/cookies under APP_DIR
+    storage_path = str(APP_DIR / "webview")
+    try:
+        webview.start(
+            private_mode=False,
+            storage_path=storage_path,
+        )
+    except Exception:
+        logger.exception("Webview window exited with an error")
