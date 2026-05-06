@@ -160,10 +160,10 @@ class __AppContext__:
 
     def destroy(self):
         self.__ready = False
-        self.db.close()
-        self.mail.close()
-        self.sources.close()
         self.scheduler.stop()
+        self.sources.close()
+        self.mail.close()
+        self.db.close()
 
     def setup(
         self,
