@@ -78,8 +78,6 @@ class FreewebnovelTemplate(BrowserTemplate):
             )
         selectors = list(filter(None, set(selectors)))
 
-        print(selectors)
-
         body_tag = soup.select_one(".m-read")
         normalized_body = self.normalize_text(body_tag.outer_html)
         normalized_soup = PageSoup.create(normalized_body, parser="html.parser")

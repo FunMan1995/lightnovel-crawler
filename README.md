@@ -89,12 +89,12 @@ You need to have [Docker](https://www.docker.com/get-started/) installed.
 ```bash
 mkdir -p lncrawl-data
 docker pull ghcr.io/lncrawl/lightnovel-crawler
-docker run -v ./lncrawl-data:/data -it -p 8080:8080 --name lncrawl-server ghcr.io/lncrawl/lightnovel-crawler -ll server
+docker run -v ./lncrawl-data:/data -it -p 8181:8181 --name lncrawl-server ghcr.io/lncrawl/lightnovel-crawler -ll server
 ```
 
 Check that it works:
 
-- Visit **[http://localhost:8080](http://localhost:8080)** in your browser.
+- Visit **[http://localhost:8181](http://localhost:8181)** in your browser.
 - You can sign in with the default account: `admin` / `admin`.
 
 [![Login](res/screenshots/login.png)](res/screenshots/login.png)

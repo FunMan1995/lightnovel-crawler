@@ -9,8 +9,8 @@ app = typer.Typer()
 
 @app.command(help="Run web server.")
 def server(
-    host: Annotated[str, typer.Option("-h", "--host", help="Server host")] = "0.0.0.0",
-    port: Annotated[int, typer.Option("-p", "--port", help="Server port")] = 8080,
+    port: Annotated[int, typer.Option("-p", "--port", help="Server port")] = 8181,
+    host: Annotated[str, typer.Option("-h", "--host", help="Server host")] = "127.0.0.1",
     watch: Annotated[bool, typer.Option("-w", "--watch", help="Run server in watch mode")] = False,
     workers: Annotated[int, typer.Option("-n", "--worker", help="Number of workers to run")] = 1,
 ):

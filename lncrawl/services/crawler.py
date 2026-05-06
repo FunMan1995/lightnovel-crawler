@@ -70,6 +70,7 @@ class CrawlerService:
                     url=novel_url,
                     domain=url.host,
                     title=model.title,
+                    cover_url=model.cover_url,
                 )
 
             # update novel
