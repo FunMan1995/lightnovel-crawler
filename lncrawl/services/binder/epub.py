@@ -147,9 +147,10 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
         book.add_metadata("DC", "subject", tag)
 
     # add series metadata
+    group_position = max(1, (novel.updated_at - novel.created_at) // 1000)
     book.add_metadata(None, "meta", "series", {"property": "collection-type"})
     book.add_metadata(None, "meta", novel.title, {"property": "belongs-to-collection"})
-    book.add_metadata(None, "meta", str(novel.updated_at), {"property": "group-position"})
+    book.add_metadata(None, "meta", str(group_position), {"property": "group-position"})
 
     # add template
     book.set_template("cover", epub_cover_xhtml())
