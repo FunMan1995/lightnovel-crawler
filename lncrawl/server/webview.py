@@ -16,9 +16,13 @@ def start() -> None:
     host = "localhost"
 
     # Find an available port
+    port = 31580
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind((host, 0))
-        port = s.getsockname()[1]
+        try:
+            s.bind((host, port))
+        except OSError:
+            s.bind((host, 0))
+            port = s.getsockname()[1]
 
     ctx.setup(reset_db_on_failure=True)
     token = ctx.users.generate_token(
