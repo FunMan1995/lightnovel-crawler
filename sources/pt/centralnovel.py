@@ -10,4 +10,4 @@ class CentralNovelCrawler(MangaStreamTemplate):
     base_url = ["https://centralnovel.com/"]
 
     def initialize(self) -> None:
-        self.init_executor(ratelimit=2.99)
+        self.taskman.init_executor(ratelimit=2.99)
