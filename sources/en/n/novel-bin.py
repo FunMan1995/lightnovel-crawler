@@ -11,4 +11,4 @@ class Novel_Bin(NovelFullTemplate):
     base_url = ["https://novel-bin.com/", "https://novelbin.me"]
 
     def initialize(self) -> None:
-        self.init_executor(ratelimit=1)
+        self.taskman.init_executor(ratelimit=1)
