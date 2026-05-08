@@ -177,11 +177,11 @@ class SoupTemplate(CrawlerTemplate):
     def parse_summary(self, soup: PageSoup, novel: Novel) -> None:
         """Parse and set the novel summary or synopsis"""
         tag = soup.select_one(self.novel_synopsis_selector)
-        novel.summary = self.cleaner.extract_contents(tag)
-        if not novel.summary:
+        novel.synopsis = self.cleaner.extract_contents(tag)
+        if not novel.synopsis:
             meta_tag = soup.select_one(SoupTemplate.novel_synopsis_selector)
             content = PageSoup.create(meta_tag.get("content"))
-            novel.summary = self.cleaner.extract_contents(content)
+            novel.synopsis = self.cleaner.extract_contents(content)
 
     # ------------------------------------------------------------------------- #
     # Parser methods for Volume list

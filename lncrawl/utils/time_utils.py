@@ -18,7 +18,9 @@ def as_datetime(time: Any) -> Optional[datetime]:
     try:
         if isinstance(time, datetime):
             return time
-        if isinstance(time, int) or isinstance(time, float):
+        if isinstance(time, float):
+            return datetime.fromtimestamp(time, timezone.utc)
+        if isinstance(time, int):
             if time > 1e11:  # millisecond threshold
                 time /= 1000
             return datetime.fromtimestamp(time, timezone.utc)
@@ -33,7 +35,7 @@ def as_unix_time(time: Any) -> Optional[int]:
     dt = as_datetime(time)
     if not dt:
         return None
-    return round(1000 * time.timestamp())
+    return round(1000 * dt.timestamp())
 
 
 def format_time(time: Any) -> Optional[str]:

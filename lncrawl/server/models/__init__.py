@@ -17,7 +17,15 @@ from .job import (
 from .library import LibraryCreateRequest, LibraryItem, LibraryUpdateRequest
 from .novel import ReadChapterResponse
 from .pagination import Paginated
-from .sources import AppInfo, CrawlerIndex, CrawlerInfo, SourceItem
+from .sources import (
+    AppInfo,
+    CrawlerIndex,
+    CrawlerInfo,
+    CrawlerTestRequest,
+    SourceCodeResponse,
+    SourceItem,
+    SourcePRRequest,
+)
 from .user import (
     CreateRequest,
     ForgotPasswordRequest,
@@ -44,7 +52,10 @@ __all__ = [
     "AppInfo",
     "CrawlerInfo",
     "CrawlerIndex",
+    "CrawlerTestRequest",
     "SourceItem",
+    "SourceCodeResponse",
+    "SourcePRRequest",
     # crawler
     "LoginData",
     # job

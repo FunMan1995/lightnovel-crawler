@@ -20,6 +20,12 @@ class __AppContext__:
         return AdminService()
 
     @cached_property
+    def github(self):
+        from .services.github import GitHubService
+
+        return GitHubService()
+
+    @cached_property
     def logger(self):
         from .services.logger import Logger
 

@@ -4,7 +4,6 @@ import sqlmodel as sq
 
 from ..context import ctx
 from ..core import Chapter as CrawlerChapter
-from ..core.models import get_extras
 from ..dao import Chapter, User, Volume
 from ..exceptions import ServerErrors
 from ..server.models import Paginated, ReadChapterResponse
@@ -192,7 +191,7 @@ class ChapterService:
                             novel_id=novel_id,
                             url=wanted[s].url,
                             title=wanted[s].title,
-                            extra=get_extras(wanted[s]),
+                            extra=wanted[s].get_extras(),
                             volume_id=vol_id_map.get(wanted[s].volume),
                         ).model_dump()
                         for s in to_insert
@@ -209,7 +208,7 @@ class ChapterService:
                             novel_id=novel_id,
                             url=wanted[s].url,
                             title=wanted[s].title,
-                            extra=get_extras(wanted[s]),
+                            extra=wanted[s].get_extras(),
                             volume_id=vol_id_map.get(wanted[s].volume),
                         ).model_dump()
                         for s in to_update

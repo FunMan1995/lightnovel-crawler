@@ -1,20 +1,23 @@
+import contextlib
 import logging
+import traceback
 from pathlib import Path
 from threading import Event
 from typing import Dict, List, Optional, Type
 
 from ...context import ctx
-from ...core.crawler import Crawler
-from ...core.taskman import TaskManager
+from ...core import Crawler, Novel, TaskManager
 from ...exceptions import ServerErrors
 from ...server.models import CrawlerIndex, CrawlerInfo, SourceItem
 from ...utils.fts_store import FTSStore
+from ...utils.log_queue import LogSink
 from ...utils.text_tools import normalize
-from ...utils.url_tools import extract_host, normalize_url
+from ...utils.url_tools import extract_base, extract_host, normalize_url
 from .helper import (
     create_crawler_info,
     fetch_online_source,
     import_crawlers,
+    load_crawler_from_content,
     load_offline_source,
     save_source,
 )
@@ -271,7 +274,6 @@ class Sources:
     def init_crawler(
         self,
         constructor: Type[Crawler],
-        disable_logger=not ctx.logger.is_debug,
         workers: Optional[int] = None,
         parser: Optional[str] = None,
         renew: bool = False,
@@ -283,15 +285,7 @@ class Sources:
                 return _crawlers_cache[constructor]
 
         url = getattr(constructor, "url")
-        logger.debug(f"Creating crawler instance for {url}")
-
-        # disable logging
-        if disable_logger:
-            module = getattr(constructor, "__module_obj__")
-            setattr(module, "print", lambda *a, **k: None)
-            setattr(
-                module, "logger", type("", (), {"__getattr__": lambda *n: lambda *a, **k: None})()
-            )
+        ctx.logger.debug(f"Creating crawler instance for {url}")
 
         # create instance
         crawler = constructor(
@@ -303,3 +297,59 @@ class Sources:
 
         crawler.initialize()
         return crawler
+
+    def test_crawler(self, url: str, content: str, sink: LogSink) -> None:
+        crawler = None
+        crawler_log_sink: Optional[LogSink] = None
+        try:
+            constructor = load_crawler_from_content(content)
+            if constructor is None:
+                sink.print("<x> ERROR: No Crawler subclass found in source")
+                return
+
+            crawler_log_sink = getattr(constructor, "__logs__")
+            assert isinstance(crawler_log_sink, LogSink)
+            crawler_log_sink.attach(sink.add)
+            sink.print(f"INFO: Crawler loaded: {constructor.__name__}")
+
+            base_url = extract_base(url)
+            crawler = constructor(origin=base_url)
+            crawler.initialize()
+            sink.print(f"INFO: Crawler initialized: {base_url}")
+
+            novel = Novel(url=url)
+            sink.print(f"INFO: Getting novel {url!r}")
+            crawler.read_novel(novel)
+            crawler.format_novel(novel)
+            sink.print(f"INFO: title='{novel.title!r}'")
+
+            sink.print("-" * 30)
+            sink.print(novel.to_yaml(indent=4, sort_keys=False))
+            sink.print("-" * 30)
+
+            chapters = []
+            if len(novel.chapters) > 0:
+                chapters.append(novel.chapters[0])
+            if len(novel.chapters) > 1:
+                chapters.append(novel.chapters[-1])
+            for chapter in chapters:
+                crawler.download_chapter(chapter)
+                crawler.format_chapter(chapter)
+                sink.print(f"Downloaded chapter {chapter.id}")
+
+                sink.print("-" * 30)
+                sink.print(chapter.title)
+                sink.print("-" * 30)
+                sink.print(chapter.body or "[No Content]")
+                sink.print("-" * 30)
+
+            sink.add("TEST PASSED")
+        except Exception as e:
+            sink.print("<!> ERROR:", repr(e))
+            sink.print(traceback.format_exc())
+        finally:
+            if crawler is not None:
+                with contextlib.suppress(Exception):
+                    crawler.close()
+            if crawler_log_sink is not None:
+                crawler_log_sink.detach(sink.add)

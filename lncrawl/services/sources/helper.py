@@ -6,12 +6,15 @@ import io
 import json
 import logging
 import shutil
+import types
 from pathlib import Path
-from typing import Generator, Type
+from typing import Generator, Optional, Type
 
 from ...context import ctx
 from ...core.crawler import Crawler
 from ...server.models import CrawlerIndex, CrawlerInfo
+from ...utils.log_queue import replace_logger
+from ...utils.time_utils import as_unix_time, current_timestamp
 from ...utils.url_tools import validate_url
 
 logger = logging.getLogger(__name__)
@@ -91,11 +94,25 @@ def import_crawlers(file: Path) -> Generator[Type[Crawler], None, None]:
             return
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
+        module.__name__ = mod_name
+        module.__file__ = str(file)
     except Exception as e:
         logger.info(f"\\[{file}] Failed to load: {repr(e)}")
         return
 
-    # import all valid crawlers
+    # extract all valid crawlers
+    try:
+        yield from extract_crawlers_from_module(module)
+    except Exception as e:
+        logger.info(f"\\[{file}] Failed to extract crawlers: {repr(e)}")
+        return
+
+
+def extract_crawlers_from_module(module: types.ModuleType) -> Generator[Type[Crawler], None, None]:
+    assert module.__file__
+    mod_name = module.__name__
+    file = Path(module.__file__)
+    log_sink = replace_logger(module)
     for key in dir(module):
         crawler = getattr(module, key)
 
@@ -124,14 +141,28 @@ def import_crawlers(file: Path) -> Generator[Type[Crawler], None, None]:
         crawler.base_url = urls
 
         # other metdata
-        stat = file.stat()
         id = hashlib.md5(str(crawler).encode()).hexdigest()
+        file_time = current_timestamp()
+        if file.is_file():
+            file_time = as_unix_time(file.stat().st_mtime) or file_time
+
         setattr(crawler, "__id__", id)
+        setattr(crawler, "__logs__", log_sink)
         setattr(crawler, "__file__", str(file))
         setattr(crawler, "__module_obj__", module)
-        setattr(crawler, "version", int(max(stat.st_mtime, stat.st_ctime)))
+        setattr(crawler, "version", file_time // 1000)
 
         yield crawler
+
+
+def load_crawler_from_content(content: str) -> Optional[Type[Crawler]]:
+    mod_name = hashlib.md5(content.encode()).hexdigest()
+    module = types.ModuleType(mod_name)
+    module.__file__ = f"{mod_name}_test.py"
+    exec(compile(content, module.__file__, "exec"), module.__dict__)
+    for crawler in extract_crawlers_from_module(module):
+        return crawler
+    raise Exception("No crawler subbclass found in the source")
 
 
 def create_crawler_info(crawler: Type[Crawler]):

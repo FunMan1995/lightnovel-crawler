@@ -9,7 +9,6 @@ from ..context import ctx
 from ..core import Chapter as CrawlerChapter
 from ..core import Crawler
 from ..core import Novel as CrawlerNovel
-from ..core.models import get_extras
 from ..dao import Chapter, ChapterImage, Novel
 from ..exceptions import ServerErrors
 
@@ -84,7 +83,7 @@ class CrawlerService:
             novel.language = model.language
             novel.volume_count = len(model.volumes)
             novel.chapter_count = len(model.chapters)
-            novel.extra.update(get_extras(model))
+            novel.extra.update(model.get_extras())
             sess.add(novel)
             sess.commit()
 
@@ -160,7 +159,7 @@ class CrawlerService:
         with ctx.db.session() as sess:
             chapter.is_done = True
             chapter.title = model.title
-            chapter.extra.update(get_extras(model))
+            chapter.extra.update(model.get_extras())
             sess.add(chapter)
             sess.commit()
 

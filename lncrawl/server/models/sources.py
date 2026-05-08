@@ -86,3 +86,21 @@ class SourceItem(BaseModel):
 
     def __hash__(self) -> int:
         return hash(self.info.id)
+
+
+class SourceCodeResponse(BaseModel):
+    file_path: str = Field(..., description="Repo-relative path, e.g. sources/en/n/novelspl.py")
+    content: str = Field(..., description="Full source file content")
+
+
+class CrawlerTestRequest(BaseModel):
+    url: str = Field(..., description="Novel URL to fetch with the crawler")
+    content: str = Field(..., description="Crawler source code to test")
+
+
+class SourcePRRequest(BaseModel):
+    content: str = Field(..., description="Updated file content")
+    branch: str = Field(default="", description="New branch name for PR")
+    title: str = Field(default="", description="Commit message and PR title")
+    body: str = Field(default="", description="PR description body")
+    repo: str = Field(default="dipu-bd/lightnovel-crawler", description="GitHub owner/repo")

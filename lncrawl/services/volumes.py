@@ -4,7 +4,6 @@ import sqlmodel as sq
 
 from ..context import ctx
 from ..core import Volume as CrawlerVolume
-from ..core.models import get_extras
 from ..dao import User, UserRole, Volume
 from ..exceptions import ServerErrors
 
@@ -84,7 +83,7 @@ class VolumeService:
                             serial=s,
                             novel_id=novel_id,
                             title=wanted[s].title,
-                            extra=get_extras(wanted[s]),
+                            extra=wanted[s].get_extras(),
                             chapter_count=wanted[s].chapters,
                         ).model_dump()
                         for s in to_insert
@@ -100,7 +99,7 @@ class VolumeService:
                             serial=s,
                             novel_id=novel_id,
                             title=wanted[s].title,
-                            extra=get_extras(wanted[s]),
+                            extra=wanted[s].get_extras(),
                             chapter_count=wanted[s].chapters,
                         ).model_dump()
                         for s in to_update
