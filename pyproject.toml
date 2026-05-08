@@ -131,18 +131,12 @@ target-version = "py39"
 
 [tool.ruff.lint]
 extend-select = [
-  # isort
-  "I",
-  # pycodestyle
-  "E",
-  # Pyflakes
-  "F",
-  # pyupgrade
-  # "UP",
-  # flake8-bugbear
-  # "B",
-  # flake8-simplify
-  # "SIM",
+  "I",      # isort
+  "E",      # pycodestyle
+  "F",      # Pyflakes
+  # "UP",   # pyupgrade
+  # "B",    # flake8-bugbear
+  # "SIM",  # flake8-simplify
 ]
 ignore = ["E203", "E265", "E501"]
 

@@ -33,3 +33,4 @@ save_pid.txt
 Test Novel
 windows/
 config.json
+.claude/settings.local.json
