@@ -25,6 +25,7 @@ from .sources import (
     SourceCodeResponse,
     SourceItem,
     SourcePRRequest,
+    SourcePRResponse,
 )
 from .user import (
     CreateRequest,
@@ -56,6 +57,7 @@ __all__ = [
     "SourceItem",
     "SourceCodeResponse",
     "SourcePRRequest",
+    "SourcePRResponse",
     # crawler
     "LoginData",
     # job

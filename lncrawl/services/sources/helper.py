@@ -13,7 +13,7 @@ from typing import Generator, Optional, Type
 from ...context import ctx
 from ...core.crawler import Crawler
 from ...server.models import CrawlerIndex, CrawlerInfo
-from ...utils.log_queue import replace_logger
+from ...utils.log_sink import replace_logger
 from ...utils.time_utils import as_unix_time, current_timestamp
 from ...utils.url_tools import validate_url
 

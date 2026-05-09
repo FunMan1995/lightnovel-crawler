@@ -4,9 +4,9 @@ import logging
 import threading
 import types
 import weakref
-from typing import Callable, Set, Union
+from typing import Any, Callable, Set, Union
 
-_Listener = Callable[[str], None]
+_Listener = Callable[[str], Any]
 _ListenerRef = weakref.ref[_Listener]
 
 
@@ -20,7 +20,7 @@ class LogSink:
             self._listeners.discard(ref)
 
     def _make_ref(self, listener: _Listener) -> _ListenerRef:
-        if hasattr(listener, "__self__"):
+        if isinstance(listener, types.MethodType):
             return weakref.WeakMethod(listener, self._discard)
         return weakref.ref(listener, self._discard)
 

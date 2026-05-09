@@ -143,6 +143,7 @@ class ServerErrors:
     host_rejected = ServerError(500, "The requested domain is rejected")
     source_not_loaded = ServerError(500, "Sources are not loaded")
     no_crawler = ServerError(500, "No crawler found for the domain")
+    crawler_test_failure = ServerError(500, "Crawler test failed")
 
 
 def get_exception_handlers():

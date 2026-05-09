@@ -1,105 +1,112 @@
-import base64
-import time
+import hashlib
+import logging
+import traceback
 from pathlib import Path
 
-import httpx
-
 from ..context import ctx
+from ..dao import User
 from ..exceptions import ServerErrors
-from ..server.models.sources import SourceCodeResponse, SourcePRRequest
+from ..server.models import SourceCodeResponse, SourcePRRequest, SourcePRResponse
+from ..utils.github import GithubClient
+from ..utils.log_sink import LogSink
 
-_GITHUB_API = "https://api.github.com"
+logger = logging.getLogger(__name__)
 
 
 class GitHubService:
-    def _token(self) -> str:
-        admin = ctx.users.get_admin()
-        token = ctx.secrets.get_value(admin.id, "GITHUB_TOKEN")
-        if not token:
-            raise ServerErrors.server_error.with_extra(
-                "Set 'GITHUB_TOKEN' in admin secrets to enable PR creation"
-            )
-        return token
-
     def _crawler_file(self, source_id: str) -> Path:
         ctx.sources.ensure_load()
         crawler_cls = ctx.sources.crawlers.get(source_id)
         if not crawler_cls:
-            raise ServerErrors.not_found
+            raise ServerErrors.no_crawler
         return Path(getattr(crawler_cls, "__file__"))
 
     def _repo_rel_path(self, file: Path) -> str:
         repo_root = ctx.config.crawler.local_sources.parent
-        try:
-            return file.relative_to(repo_root).as_posix()
-        except ValueError:
-            return file.name
+        return file.relative_to(repo_root).as_posix()
 
     def get_source_code(self, source_id: str) -> SourceCodeResponse:
         file = self._crawler_file(source_id)
+        file_path = self._repo_rel_path(file)
         if not file.exists():
             raise ServerErrors.no_such_file
         return SourceCodeResponse(
-            file_path=self._repo_rel_path(file),
+            file_path=file_path,
             content=file.read_text(encoding="utf-8"),
         )
 
-    def create_source_pr(self, source_id: str, req: SourcePRRequest) -> str:
+    def _run_crawler_test(self, url: str, content: str) -> str:
+        sink = LogSink()
+        parts: list[str] = []
+
+        def collect(s: str) -> None:
+            logger.debug(s)
+            parts.append(s)
+
+        try:
+            logger.debug(f"Running test for crawler: {url!r}")
+            with sink.pipe(parts.append):
+                ctx.sources.test_crawler(url, content, sink, verbose=False)
+            logger.debug("Crawler test passed")
+            return "".join(parts)
+        except Exception as e:
+            logger.info(f"Crawler test failed: {repr(e)}")
+            collect(traceback.format_exc())
+            raise ServerErrors.crawler_test_failure from e
+
+    def create_source_pr(
+        self,
+        user: User,
+        source_id: str,
+        req: SourcePRRequest,
+    ) -> SourcePRResponse:
         file = self._crawler_file(source_id)
         file_path = self._repo_rel_path(file)
-        token = self._token()
 
-        stem = file.stem  # e.g. "novelspl"
-        ts = int(time.time())
-        branch = req.branch or f"fix/{stem}-{ts}"
-        title = req.title or f"Fix {stem} source crawler"
+        test_logs = self._run_crawler_test(req.url, req.content)
 
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-        try:
-            with httpx.Client(headers=headers, base_url=_GITHUB_API) as gh:
-                repo = gh.get(f"/repos/{req.repo}").raise_for_status().json()
-                default_branch = repo["default_branch"]
+        stem = file.stem
+        branch = req.branch or f"fix/sources/{stem}"
+        title = req.title or f"Update source: {stem}"
 
-                file_data = (
-                    gh.get(f"/repos/{req.repo}/contents/{file_path}").raise_for_status().json()
+        user_link = f"{ctx.config.server.base_url}/admin/user/{user.id}"
+        body = req.body or (
+            f"> Submitted by [{user.name}]({user_link})\n"
+            f"> Test URL: {req.url}\n"
+            f"> File: {GithubClient.get_remote_link(file_path)}\n\n"
+            f"```\n{test_logs}\n```"
+        )
+
+        user_hash = hashlib.shake_256(user.email.encode()).hexdigest(6)
+        labels = ["source-update", f"user:{user_hash}"]
+
+        with GithubClient() as gh:
+            pr = gh.find_open_pr(branch)
+            if not pr:
+                gh.ensure_branch(branch)
+
+            committed = gh.commit_file(
+                message=title,
+                branch=branch,
+                content=req.content,
+                file_path=file_path,
+                user_name=user.name or "Server User",
+                user_email=user.email,
+            )
+
+            if pr:
+                gh.update_pr(pr["number"], title, body)
+            elif not committed:
+                raise ServerErrors.invalid_input.with_extra(
+                    "Source content is identical to the current version"
                 )
-                file_sha = file_data["sha"]
+            else:
+                pr = gh.create_pr(title, body, branch)
 
-                head_sha = (
-                    gh.get(f"/repos/{req.repo}/git/ref/heads/{default_branch}")
-                    .raise_for_status()
-                    .json()["object"]["sha"]
-                )
+            gh.add_labels(pr["number"], labels)
 
-                gh.post(
-                    f"/repos/{req.repo}/git/refs",
-                    json={"ref": f"refs/heads/{branch}", "sha": head_sha},
-                ).raise_for_status()
-
-                gh.put(
-                    f"/repos/{req.repo}/contents/{file_path}",
-                    json={
-                        "message": title,
-                        "content": base64.b64encode(req.content.encode()).decode(),
-                        "sha": file_sha,
-                        "branch": branch,
-                    },
-                ).raise_for_status()
-
-                pr = gh.post(
-                    f"/repos/{req.repo}/pulls",
-                    json={
-                        "title": title,
-                        "body": req.body,
-                        "head": branch,
-                        "base": default_branch,
-                    },
-                ).raise_for_status().json()
-
-                return pr["html_url"]
-        except httpx.HTTPStatusError as e:
-            raise ServerErrors.server_error.with_extra(f"GitHub API error: {e.response.text}")
+            return SourcePRResponse(
+                url=pr["html_url"],
+                sha=pr["head"]["sha"],
+                branch=pr["head"]["ref"],
+            )

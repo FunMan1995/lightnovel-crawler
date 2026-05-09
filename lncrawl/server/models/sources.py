@@ -59,6 +59,8 @@ class CrawlerIndex(BaseModel):
 
 
 class SourceItem(BaseModel):
+    id: str = Field(..., description="Unique identifier")
+    md5: str = Field(..., description="MD5 hash of the crawler module")
     url: str = Field(description="Source base url")
     domain: str = Field(description="Domain name")
     version: int = Field(description="Version number")
@@ -99,8 +101,14 @@ class CrawlerTestRequest(BaseModel):
 
 
 class SourcePRRequest(BaseModel):
+    url: str = Field(..., description="Novel URL to fetch to test the crawler")
     content: str = Field(..., description="Updated file content")
     branch: str = Field(default="", description="New branch name for PR")
     title: str = Field(default="", description="Commit message and PR title")
     body: str = Field(default="", description="PR description body")
-    repo: str = Field(default="dipu-bd/lightnovel-crawler", description="GitHub owner/repo")
+
+
+class SourcePRResponse(BaseModel):
+    url: str = Field(description="Pull Request URL")
+    branch: str = Field(description="Pull Request branch name")
+    sha: str = Field(description="Pull Request commit hash")

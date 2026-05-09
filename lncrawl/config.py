@@ -265,6 +265,19 @@ class AppConfig(_Section):
         self._set("openai_api_key", v)
 
     @property
+    def github_token(self) -> Annotated[str, Sensitive]:
+        """Github Token.
+
+        Github token for creating automatic pull requests for sources.
+        You can get one from here: https://github.com/settings/personal-access-tokens
+        """
+        return self._get("github_token", "")
+
+    @github_token.setter
+    def github_token(self, v: str) -> None:
+        self._set("github_token", v)
+
+    @property
     def admin_email(self) -> str:
         """Admin Email.
 
