@@ -55,5 +55,3 @@ def patch_configs(
     body: List[ConfigUpdateRequest] = Body(...),
 ) -> None:
     ctx.admin.update_config(body)
-
-

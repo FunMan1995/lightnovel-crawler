@@ -110,7 +110,7 @@ router.include_router(
 
 router.include_router(
     sources,
-    prefix="/sources",
+    prefix="/source",
     tags=["Sources"],
     dependencies=[Depends(ensure_user)],
 )

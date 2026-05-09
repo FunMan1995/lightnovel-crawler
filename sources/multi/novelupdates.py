@@ -133,7 +133,7 @@ class NovelupdatesCrawler(BrowserTemplate):
         response = self.scraper.get(chapter.url)
         chapter.url = response.url
         try:
-            constructor = ctx.sources.get_crawler(chapter.url)
+            constructor = ctx.sources.find_crawler(chapter.url)
             crawler = ctx.sources.init_crawler(constructor)
             crawler.scraper.signal = self.scraper.signal
             crawler.download_chapter(chapter)

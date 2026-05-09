@@ -27,6 +27,7 @@ try:
     from lncrawl.context import ctx
     from lncrawl.core import TaskManager
     from lncrawl.server.models import CrawlerInfo
+    from lncrawl.services.sources.helper import batch_import, create_crawler_info
 except ImportError:
     raise
 
@@ -227,8 +228,6 @@ def process_info(info: CrawlerInfo):
     logger.info(f"[cyan]{info.id}[/cyan] {relative_path}")
 
     info.md5 = hashlib.md5(py_file.read_bytes()).hexdigest()
-    info.url = f"{FILE_DOWNLOAD_URL}/{REPO_BRANCH}/{relative_path}"
-
     history = git_history(relative_path)
     if history:
         info.total_commits = len(history)
@@ -249,7 +248,8 @@ futures = []
 visited = set()
 taskman = TaskManager(42)
 ctx.sources._taskman = taskman
-for info in ctx.sources.load_crawlers(*sorted(SOURCES_FOLDER.glob("**/*.py"))):
+for crawler in batch_import(*sorted(SOURCES_FOLDER.glob("**/*.py"))):
+    info = create_crawler_info(crawler)
     if info.id in visited:
         continue
     visited.add(info.id)

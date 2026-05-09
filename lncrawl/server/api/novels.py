@@ -1,10 +1,10 @@
-from typing import List
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends, Path, Query
 
 from ...context import ctx
 from ...dao import Artifact, Chapter, Novel, Volume
-from ..models import Paginated, SourceItem
+from ..models import Paginated
 from ..security import ensure_admin
 
 # The root router
@@ -30,11 +30,11 @@ def list_novels(
 
 
 @router.get(
-    "/sources",
+    "/domains",
     summary="Returns a list of sources that are used in available novels",
 )
-def list_sources() -> List[SourceItem]:
-    return ctx.novels.list_sources()
+def list_sources() -> Dict[str, int]:
+    return ctx.novels.list_domains()
 
 
 @router.get("/{novel_id}", summary="Returns a novel")

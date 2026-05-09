@@ -1,13 +1,15 @@
-from fastapi import APIRouter, Body, Path, Security
-from fastapi.responses import StreamingResponse
+from typing import List
+
+from fastapi import APIRouter, Body, Path, Query, Security
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from ...context import ctx
 from ...dao import User
 from ..models import (
     CrawlerTestRequest,
-    SourceCodeResponse,
-    SourcePRRequest,
-    SourcePRResponse,
+    CreatePRRequest,
+    CreatePRResponse,
+    SourceItem,
 )
 from ..security import ensure_admin, ensure_user
 
@@ -15,23 +17,46 @@ router = APIRouter()
 
 
 @router.get(
-    "/{source_id}/code",
+    "s",
+    summary="Returns a list of supported sources",
+    response_model=List[SourceItem],
+)
+def list_sources(
+    skip_rejected: bool = Query(default=False, help="Send true to skip rejected sources"),
+):
+    count = ctx.novels.list_domains()
+    result = ctx.sources.list(
+        include_rejected=not skip_rejected,
+    )
+    for item in result:
+        item.total_novels = count.get(item.domain, 0)
+    return JSONResponse(
+        content=[item.model_dump() for item in result],
+        headers={
+            "ETag": str(ctx.sources.version),
+            "Cache-Control": "public, max-age=14400",
+        },
+    )
+
+
+@router.get(
+    "/{domain}/code",
     summary="Get source crawler file content",
 )
-def get_source_code(source_id: str) -> SourceCodeResponse:
-    return ctx.github.get_source_code(source_id)
+def get_source(domain: str) -> str:
+    return ctx.github.get_source_code(domain)
 
 
 @router.post(
-    "/{source_id}/pr",
+    "/{domain}/pr",
     summary="Create a GitHub PR with an edited source crawler",
 )
 def create_source_pr(
-    source_id: str = Path(),
-    req: SourcePRRequest = Body(...),
+    domain: str = Path(),
+    req: CreatePRRequest = Body(...),
     user: User = Security(ensure_user),
-) -> SourcePRResponse:
-    return ctx.github.create_source_pr(user, source_id, req)
+) -> CreatePRResponse:
+    return ctx.github.create_source_pr(user, domain, req)
 
 
 @router.post(

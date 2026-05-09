@@ -8,14 +8,14 @@ import logging
 import shutil
 import types
 from pathlib import Path
-from typing import Generator, Type
+from typing import Dict, Generator, Type
 
 from ...context import ctx
 from ...core import Crawler
-from ...server.models import CrawlerIndex, CrawlerInfo
+from ...server.models import CrawlerIndex, CrawlerInfo, SourceItem
 from ...utils.log_sink import replace_logger
 from ...utils.time_utils import as_unix_time, current_timestamp
-from ...utils.url_tools import validate_url
+from ...utils.url_tools import extract_host, validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -73,8 +73,9 @@ def has_method(crawler: Type[Crawler], method: str):
     return hasattr(crawler, method) and callable(getattr(crawler, method))
 
 
-def batch_import_crawlers(*files: Path):
-    return (crawler for file in files if file.is_file() for crawler in import_crawlers(file))
+def batch_import(*files: Path):
+    for file in files:
+        yield from import_crawlers(file)
 
 
 def import_crawlers(file: Path) -> Generator[Type[Crawler], None, None]:
@@ -142,7 +143,8 @@ def extract_crawlers(module: types.ModuleType) -> Generator[Type[Crawler], None,
         if file.is_file():
             file_time = as_unix_time(file.stat().st_mtime) or file_time
 
-        setattr(crawler, "__id__", hashlib.md5(str(crawler).encode()).hexdigest())
+        id = hashlib.md5(str(crawler).encode()).hexdigest()
+        setattr(crawler, "__id__", id)
         setattr(crawler, "__logs__", log_sink)
         setattr(crawler, "__file__", str(file))
         setattr(crawler, "__module_obj__", module)
@@ -156,16 +158,39 @@ def create_crawler_info(crawler: Type[Crawler]):
     file = Path(getattr(crawler, "__file__"))
     file_path = file.relative_to(root).as_posix()
     language = file_path.split("/")[1]
+    language = getattr(crawler, "language", language)
     return CrawlerInfo(
-        language=language,
         file_path=file_path,
         id=getattr(crawler, "__id__"),
         md5=getattr(crawler, "__module__"),
-        base_urls=getattr(crawler, "base_url"),
         version=int(getattr(crawler, "version")),
+        base_urls=getattr(crawler, "base_url"),
+        language=language,
         has_mtl=crawler.has_mtl,
         has_manga=crawler.has_manga,
         can_login=crawler.can_login,
         can_search=crawler.can_search,
-        url=f"file:///{Path(file).resolve().as_posix()}",
+    )
+
+
+def create_source_item(url: str, info: CrawlerInfo, rejected: Dict[str, str]):
+    domain = extract_host(url)
+    is_disabled = domain in rejected
+    disable_reason = rejected.get(domain) or "No reason provided"
+    return SourceItem(
+        url=url,
+        domain=domain,
+        crawler_id=info.id,
+        file_path=info.file_path,
+        is_disabled=is_disabled,
+        disable_reason=disable_reason if is_disabled else None,
+        md5=info.md5,
+        version=info.version,
+        language=info.language,
+        has_manga=info.has_manga,
+        has_mtl=info.has_mtl,
+        can_search=info.can_search,
+        can_login=info.can_login,
+        total_commits=info.total_commits,
+        contributors=info.contributors,
     )

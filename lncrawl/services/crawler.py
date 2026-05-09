@@ -20,7 +20,7 @@ class CrawlerService:
         pass
 
     def get_crawler(self, user_id: str, novel_url: str):
-        constructor = ctx.sources.get_crawler(novel_url)
+        constructor = ctx.sources.find_crawler(novel_url)
         crawler = ctx.sources.init_crawler(constructor)
         can_login = getattr(crawler, "can_login", False)
         logged_in = getattr(crawler, "__logged_in__", False)

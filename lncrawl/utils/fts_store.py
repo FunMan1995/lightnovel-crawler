@@ -1,5 +1,5 @@
 import sqlite3
-from typing import Iterable, List, Mapping, Tuple
+from typing import Iterable, Mapping, Set, Tuple
 
 from .event_lock import EventLock
 
@@ -74,11 +74,11 @@ class FTSStore:
             c = self._db.execute(_COUNT_SQL)
             return c.fetchone()[0]
 
-    def search(self, query: str) -> List[str]:
+    def search(self, query: str) -> Set[str]:
         """Perform a full-text search on key and return values."""
         with self._lock, self._db:
             c = self._db.execute(_SEARCH_SQL, [_escape_query(query)])
-            return list(set([r[0] for r in c.fetchall()]))
+            return set([r[0] for r in c.fetchall()])
 
     def insert_dict(self, mapping: Mapping[str, str]):
         """Insert multiple items from a key-value mapping"""

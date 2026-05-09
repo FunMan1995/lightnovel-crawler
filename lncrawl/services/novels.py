@@ -1,12 +1,12 @@
 import shutil
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import sqlmodel as sa
 
 from ..context import ctx
 from ..dao import Novel
 from ..exceptions import ServerErrors
-from ..server.models import Paginated, SourceItem
+from ..server.models import Paginated
 
 
 class NovelService:
@@ -54,23 +54,15 @@ class NovelService:
                 items=list(items),
             )
 
-    def list_sources(self) -> List[SourceItem]:
+    def list_domains(self) -> Dict[str, int]:
         with ctx.db.session() as sess:
             domains = sess.exec(
                 sa.select(
-                    Novel.domain, sa.func.count(sa.col(Novel.id)).label("total_novels")
+                    Novel.domain,
+                    sa.func.count(sa.col(Novel.id)).label("total_novels"),
                 ).group_by(Novel.domain)
             ).all()
-
-        results = []
-        for domain, total_novels in domains:
-            sources = ctx.sources.list(domain)
-            if not sources:
-                continue
-            source = sources[0]
-            source.total_novels = total_novels
-            results.append(source)
-        return results
+        return {domain: total_novels for domain, total_novels in domains}
 
     def get(self, novel_id: str) -> Novel:
         with ctx.db.session() as sess:
