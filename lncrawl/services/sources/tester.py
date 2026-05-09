@@ -120,8 +120,7 @@ def run_crawler_test(
     if len(novel.chapters) > 1:
         chapters.append(novel.chapters[-1])
 
-    for box in chapters:
-        chapter = Chapter(**box)
+    for chapter in chapters:
         step(f"Downloading chapter {chapter.id}")
         meta("url", chapter.url)
         crawler.download_chapter(chapter)
