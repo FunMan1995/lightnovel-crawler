@@ -13,6 +13,7 @@ from .libraries import router as library
 from .meta import router as metadata
 from .novels import router as novel
 from .settings import router as settings
+from .sources import router as sources
 from .users import router as user
 from .volumes import router as volume
 
@@ -105,6 +106,13 @@ router.include_router(
     prefix="/announcement",
     tags=["Announcements"],
     dependencies=[Security(ensure_user)],
+)
+
+router.include_router(
+    sources,
+    prefix="/sources",
+    tags=["Sources"],
+    dependencies=[Depends(ensure_user)],
 )
 
 router.include_router(
