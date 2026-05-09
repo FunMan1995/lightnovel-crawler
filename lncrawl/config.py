@@ -211,7 +211,7 @@ class Config(object):
                 raise ValueError(f"{section}.{key} is not set")
         return _deserialize(sub[key], type(sub[key]))
 
-    def set(self, section: str, key: str, value: T) -> None:
+    def set(self, section: str, key: str, value: Any) -> None:
         sub: dict = self._data.setdefault(section, {})
         if sub.get(key) is not None:
             value = _deserialize(value, type(sub[key]))

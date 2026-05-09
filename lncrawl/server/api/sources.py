@@ -1,6 +1,6 @@
 import asyncio
 import traceback
-from threading import Thread
+from threading import Thread, Event
 from typing import Optional
 
 from fastapi import APIRouter, Body, Path, Security
@@ -47,27 +47,26 @@ def create_source_pr(
 async def test_source(
     req: CrawlerTestRequest = Body(...),
 ) -> StreamingResponse:
+    event = Event()
     sink = LogSink()
     loop = asyncio.get_running_loop()
-    queue: asyncio.Queue[Optional[str]] = asyncio.Queue()
+    queue: asyncio.Queue[str] = asyncio.Queue()
 
-    def put(item: Optional[str]):
+    def put(item: str):
         loop.call_soon_threadsafe(queue.put_nowait, item)
 
     def run():
         try:
             with sink.pipe(put):
                 ctx.sources.test_crawler(req.url, req.content, sink)
-        except Exception as e:
-            sink.print("<!> ERROR:", repr(e))
-            sink.print(traceback.format_exc())
         finally:
-            put(None)
+            event.set()
+            put("")
 
     Thread(target=run, daemon=True).start()
 
     async def drain():
-        while (item := await queue.get()) is not None:
-            yield item
+        while not event.is_set():
+            yield await queue.get()
 
     return StreamingResponse(drain(), media_type="text/event-stream")

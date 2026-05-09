@@ -1,5 +1,8 @@
 import contextlib
+import hashlib
 import logging
+import traceback
+import types
 from pathlib import Path
 from threading import Event
 from typing import Dict, List, Optional, Type
@@ -14,9 +17,9 @@ from ...utils.text_tools import normalize
 from ...utils.url_tools import extract_base, extract_host, normalize_url
 from .helper import (
     create_crawler_info,
+    extract_crawlers_from_module,
     fetch_online_source,
     import_crawlers,
-    load_crawler_from_content,
     load_offline_source,
     save_source,
 )
@@ -222,9 +225,9 @@ class Sources:
                     continue
 
                 item = SourceItem(
+                    url=url,
                     id=info.id,
                     md5=info.md5,
-                    url=url,
                     domain=domain,
                     language=language,
                     version=info.version,
@@ -299,40 +302,67 @@ class Sources:
         crawler.initialize()
         return crawler
 
-    def test_crawler(
-        self,
-        url: str,
-        content: str,
-        sink: LogSink,
-        verbose: bool = True,
-    ) -> None:
-        constructor = load_crawler_from_content(content)
-        if constructor is None:
-            raise ServerErrors.no_crawler
-        sink.print(f"crawler parsed: {constructor.__name__}")
+    def test_crawler(self, url: str, content: str, sink: LogSink) -> None:
+        def step(msg: str) -> None:
+            sink.print(f"\n>>> {msg}")
+
+        def meta(key: str, value: str) -> None:
+            sink.print(f"    {key}: {value}")
+
+        @contextlib.contextmanager
+        def section(title: str, w=50):
+            try:
+                prefix = f"─── {title} "
+                suffix = "─" * max(1, w - len(prefix))
+                sink.print("\n" + prefix + suffix)
+                yield
+            finally:
+                sink.print("─" * w)
 
         crawler = None
-        crawler_log_sink = getattr(constructor, "__logs__")
-        assert isinstance(crawler_log_sink, LogSink)
-        crawler_log_sink.attach(sink.add)
-
+        crawler_log_sink = None
         try:
+            mod_name = hashlib.md5(content.encode()).hexdigest()
+            module = types.ModuleType(mod_name)
+            module.__file__ = f"{mod_name}_test.py"
+            exec(compile(content, module.__file__, "exec"), module.__dict__)
+            for constructor in extract_crawlers_from_module(module):
+                break
+            else:
+                raise ServerErrors.no_crawler
+
+            step("Parsing crawler")
+            meta("class", constructor.__name__)
+
+            crawler = None
+            crawler_log_sink = getattr(constructor, "__logs__")
+            assert isinstance(crawler_log_sink, LogSink)
+            crawler_log_sink.attach(sink.add)
+
             base_url = extract_base(url)
             crawler = constructor(origin=base_url)
             crawler.initialize()
-            sink.print(f"crawler initialized: {base_url}")
+            step("Initializing")
+            meta("origin", base_url)
 
             novel = Novel(url=url)
-            sink.print(f"getting novel: {url!r}")
+            step("Reading novel info")
+            meta("url", url)
             crawler.read_novel(novel)
             crawler.format_novel(novel)
-            sink.print(f"read_novel success: {novel.title!r}")
-            if verbose:
-                novel.total_volumes = len(novel.volumes)
-                novel.total_chapters = len(novel.chapters)
-                sink.print("-" * 30)
-                sink.print(novel.to_yaml(indent=4, sort_keys=False))
-                sink.print("-" * 30)
+
+            meta("title", novel.title)
+            meta("cover", novel.cover_url)
+            meta("author", novel.author)
+            meta("language", novel.language or "")
+            meta("manga", str(novel.is_manga))
+            meta("MTL", str(novel.is_mtl))
+            meta("tags", ", ".join(novel.tags))
+            meta("extras", str(novel.get_extras()))
+            meta("volumes", f"{len(novel.volumes)}")
+            meta("chapters", f"{len(novel.chapters)}")
+            with section("Novel Data"):
+                sink.print(novel.to_yaml(indent=2, sort_keys=False))
 
             chapters = []
             if len(novel.chapters) > 0:
@@ -340,19 +370,22 @@ class Sources:
             if len(novel.chapters) > 1:
                 chapters.append(novel.chapters[-1])
             for chapter in chapters:
+                step(f"Downloading chapter {chapter.id}")
                 crawler.download_chapter(chapter)
                 crawler.format_chapter(chapter)
-                sink.print(f"download_chapter success: {chapter.id}")
-                if verbose:
-                    sink.print("-" * 30)
-                    sink.print(chapter.title)
-                    sink.print("-" * 30)
+                meta("title", repr(chapter.title))
+                with section(f"Chapter {chapter.id}"):
                     sink.print(chapter.body or "[No Content]")
-                    sink.print("-" * 30)
 
-            sink.add("TEST PASSED!")
+            sink.print("\nTEST PASSED!")
+        except Exception as e:
+            step(f"<!> {type(e).__name__}: {e}")
+            for line in traceback.format_exception(e):
+                sink.print("    ", line)
+            sink.print("\nTEST FAILED!")
         finally:
             with contextlib.suppress(Exception):
-                crawler_log_sink.detach(sink.add)
-                if crawler is not None:
+                if crawler:
                     crawler.close()
+                if crawler_log_sink:
+                    crawler_log_sink.detach(sink.add)

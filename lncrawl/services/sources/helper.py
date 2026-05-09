@@ -8,7 +8,7 @@ import logging
 import shutil
 import types
 from pathlib import Path
-from typing import Generator, Optional, Type
+from typing import Generator, Type
 
 from ...context import ctx
 from ...core.crawler import Crawler
@@ -153,16 +153,6 @@ def extract_crawlers_from_module(module: types.ModuleType) -> Generator[Type[Cra
         setattr(crawler, "version", file_time // 1000)
 
         yield crawler
-
-
-def load_crawler_from_content(content: str) -> Optional[Type[Crawler]]:
-    mod_name = hashlib.md5(content.encode()).hexdigest()
-    module = types.ModuleType(mod_name)
-    module.__file__ = f"{mod_name}_test.py"
-    exec(compile(content, module.__file__, "exec"), module.__dict__)
-    for crawler in extract_crawlers_from_module(module):
-        return crawler
-    raise Exception("No crawler subbclass found in the source")
 
 
 def create_crawler_info(crawler: Type[Crawler]):

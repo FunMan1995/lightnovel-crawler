@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import traceback
 from pathlib import Path
 
 from ..context import ctx
@@ -8,7 +7,6 @@ from ..dao import User
 from ..exceptions import ServerErrors
 from ..server.models import SourceCodeResponse, SourcePRRequest, SourcePRResponse
 from ..utils.github import GithubClient
-from ..utils.log_sink import LogSink
 
 logger = logging.getLogger(__name__)
 
@@ -35,25 +33,6 @@ class GitHubService:
             content=file.read_text(encoding="utf-8"),
         )
 
-    def _run_crawler_test(self, url: str, content: str) -> str:
-        sink = LogSink()
-        parts: list[str] = []
-
-        def collect(s: str) -> None:
-            logger.debug(s)
-            parts.append(s)
-
-        try:
-            logger.debug(f"Running test for crawler: {url!r}")
-            with sink.pipe(parts.append):
-                ctx.sources.test_crawler(url, content, sink, verbose=False)
-            logger.debug("Crawler test passed")
-            return "".join(parts)
-        except Exception as e:
-            logger.info(f"Crawler test failed: {repr(e)}")
-            collect(traceback.format_exc())
-            raise ServerErrors.crawler_test_failure from e
-
     def create_source_pr(
         self,
         user: User,
@@ -62,19 +41,18 @@ class GitHubService:
     ) -> SourcePRResponse:
         file = self._crawler_file(source_id)
         file_path = self._repo_rel_path(file)
+        if not (req.url in req.body and "TEST PASSED!" in req.body):
+            raise ServerErrors.crawler_test_failure
 
-        test_logs = self._run_crawler_test(req.url, req.content)
-
-        stem = file.stem
-        branch = req.branch or f"fix/sources/{stem}"
-        title = req.title or f"Update source: {stem}"
+        branch = f"fix/{file_path}"
+        title = req.title.strip().capitalize()
 
         user_link = f"{ctx.config.server.base_url}/admin/user/{user.id}"
-        body = req.body or (
+        body = (
+            f"{req.body}\n\n"
             f"> Submitted by [{user.name}]({user_link})\n"
             f"> Test URL: {req.url}\n"
-            f"> File: {GithubClient.get_remote_link(file_path)}\n\n"
-            f"```\n{test_logs}\n```"
+            f"> File: {GithubClient.get_remote_link(file_path)}\n"
         )
 
         user_hash = hashlib.shake_256(user.email.encode()).hexdigest(6)

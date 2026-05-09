@@ -101,9 +101,8 @@ class CrawlerTestRequest(BaseModel):
 
 
 class SourcePRRequest(BaseModel):
-    url: str = Field(..., description="Novel URL to fetch to test the crawler")
+    url: str = Field(..., description="Novel URL to test the crawler")
     content: str = Field(..., description="Updated file content")
-    branch: str = Field(default="", description="New branch name for PR")
     title: str = Field(default="", description="Commit message and PR title")
     body: str = Field(default="", description="PR description body")
 
