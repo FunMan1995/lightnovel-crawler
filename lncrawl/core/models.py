@@ -54,7 +54,8 @@ def _json_safe(v: Any, _seen=set()) -> Any:
 
 class _ModelBox(Box):
     def __init__(self, **kwargs: Any) -> None:
-        self[_keys_] = self.keys()
+        _original = list(self.keys())
+        self[_keys_] = _original
         self.update(**kwargs)
 
     def to_dict(self) -> Dict:
@@ -100,14 +101,6 @@ class CombinedSearchResult(_ModelBox):
         self.title = str(title)
         self.novels = novels
         super().__init__(**kwargs)
-
-
-def get_extras(obj: Box) -> Dict[str, Any]:
-    """Get all extra fields from a Box object"""
-    if _keys_ not in obj:
-        return {}
-    extra_keys = obj.keys() - obj[_keys_] - {_keys_}
-    return {k: obj[k] for k in extra_keys}
 
 
 class Chapter(_ModelBox):

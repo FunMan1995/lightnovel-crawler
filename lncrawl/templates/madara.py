@@ -1,9 +1,11 @@
+import logging
 from typing import Iterable, Optional
 from urllib.parse import urlencode
 
-from ..context import ctx
 from ..core import BrowserTemplate, Novel, PageSoup, Volume
 from ..exceptions import LNException
+
+logger = logging.getLogger(__name__)
 
 
 class MadaraTemplate(BrowserTemplate):
@@ -48,20 +50,20 @@ class MadaraTemplate(BrowserTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
         try:
             clean_novel_url = novel.url.split("?")[0].strip("/")
             response = self.scraper.submit_form(f"{clean_novel_url}/ajax/chapters/")
-            soup = self.scraper.make_soup(response)
-            chapters = soup.select(self.chapter_list_selector)
+            tag = self.scraper.make_soup(response)
+            chapters = tag.select(self.chapter_list_selector)
             return reversed(list(chapters))
         except Exception:
-            ctx.logger.debug("Failed to fetch chapters using ajax", exc_info=True)
+            logger.debug("Failed to fetch chapters using ajax", exc_info=True)
 
-        nl_id = soup.select_one("#manga-chapters-holder[data-id]")
+        nl_id = tag.select_one("#manga-chapters-holder[data-id]")
         if not nl_id:
             raise LNException("No chapter id tag found for alternate method")
 
@@ -73,8 +75,8 @@ class MadaraTemplate(BrowserTemplate):
                     "manga": nl_id["data-id"],
                 },
             )
-            soup = self.scraper.make_soup(response)
-            chapters = soup.select(self.chapter_list_selector)
+            tag = self.scraper.make_soup(response)
+            chapters = tag.select(self.chapter_list_selector)
             return reversed(list(chapters))
         except Exception as e:
             raise LNException("Failed to fetch chapters using alternate method") from e

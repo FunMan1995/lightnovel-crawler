@@ -41,22 +41,22 @@ class NovelFullTemplate(BrowserTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
-        nl_id = soup.select_one("#rating[data-novel-id]")["data-novel-id"]
+        nl_id = tag.select_one("#rating[data-novel-id]")["data-novel-id"]
         if not nl_id:
             raise LNException("No novel_id found")
 
-        script = soup.find("script", string=re.compile(r"ajaxChapterOptionUrl\s+="))
+        script = tag.find("script", string=re.compile(r"ajaxChapterOptionUrl\s+="))
         if script:
             url = f"{self.scraper.origin}ajax-chapter-option?novelId={nl_id}"
         else:
             url = f"{self.scraper.origin}ajax/chapter-archive?novelId={nl_id}"
 
-        soup = self.scraper.get_soup(url)
-        return soup.select("ul.list-chapter > li > a[href], select > option[value]")
+        tag = self.scraper.get_soup(url)
+        return tag.select("ul.list-chapter > li > a[href], select > option[value]")
 
     def parse_chapter_url(self, soup: PageSoup, chapter: Chapter) -> None:
         chapter.url = self.absolute_url(soup["href"] or soup["value"])

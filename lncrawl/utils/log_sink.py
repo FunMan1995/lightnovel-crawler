@@ -29,7 +29,7 @@ class LogSink:
             values = (ref() for ref in self._listeners)
         return list(filter(None, values))
 
-    def add(self, record: str):
+    def emit(self, record: str):
         for listener in self._all_listeners():
             with contextlib.suppress(Exception):
                 listener(record)
@@ -62,7 +62,7 @@ class LogSink:
         return h
 
     def print(self, *values, sep=" ", end="\n", **kwargs):
-        self.add(sep.join([str(v) for v in values]) + end)
+        self.emit(sep.join([str(v) for v in values]) + end)
 
 
 class _LogSinkStream(io.StringIO):
@@ -70,7 +70,7 @@ class _LogSinkStream(io.StringIO):
         self.sink = sink
 
     def write(self, s: str) -> int:
-        self.sink.add(s)
+        self.sink.emit(s)
         return len(s)
 
 

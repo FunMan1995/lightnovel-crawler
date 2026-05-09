@@ -1,11 +1,13 @@
 """Madara / wp-manga theme over HTTP using SoupTemplate (no browser)."""
 
+import logging
 from typing import Iterable, Optional
 from urllib.parse import quote, quote_plus, urlencode
 
-from ..context import ctx
 from ..core import Chapter, Novel, PageSoup, SoupTemplate, Volume
 from ..exceptions import LNException
+
+logger = logging.getLogger(__name__)
 
 
 class WordpressTemplate(SoupTemplate):
@@ -91,7 +93,7 @@ class WordpressTemplate(SoupTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
@@ -102,9 +104,9 @@ class WordpressTemplate(SoupTemplate):
             chapters = ch_soup.select(self.chapter_list_selector)
             return reversed(list(chapters))
         except Exception:
-            ctx.logger.debug("Failed to fetch chapters using ajax", exc_info=True)
+            logging.debug("Failed to fetch chapters using ajax", exc_info=True)
 
-        nl_id = soup.select_one("#manga-chapters-holder[data-id]")
+        nl_id = tag.select_one("#manga-chapters-holder[data-id]")
         if not nl_id:
             raise LNException("No chapter id tag found for alternate method")
 

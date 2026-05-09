@@ -1,21 +1,15 @@
-import asyncio
-import traceback
-from threading import Thread, Event
-from typing import Optional
-
 from fastapi import APIRouter, Body, Path, Security
 from fastapi.responses import StreamingResponse
 
 from ...context import ctx
 from ...dao import User
-from ...utils.log_sink import LogSink
 from ..models import (
     CrawlerTestRequest,
     SourceCodeResponse,
     SourcePRRequest,
     SourcePRResponse,
 )
-from ..security import ensure_user
+from ..security import ensure_admin, ensure_user
 
 router = APIRouter()
 
@@ -42,31 +36,13 @@ def create_source_pr(
 
 @router.post(
     "/test",
-    summary="Test crawler source code against a novel URL",
+    summary="Test crawler source code against a novel URL (Admin only)",
 )
 async def test_source(
     req: CrawlerTestRequest = Body(...),
+    user: User = Security(ensure_admin),
 ) -> StreamingResponse:
-    event = Event()
-    sink = LogSink()
-    loop = asyncio.get_running_loop()
-    queue: asyncio.Queue[str] = asyncio.Queue()
-
-    def put(item: str):
-        loop.call_soon_threadsafe(queue.put_nowait, item)
-
-    def run():
-        try:
-            with sink.pipe(put):
-                ctx.sources.test_crawler(req.url, req.content, sink)
-        finally:
-            event.set()
-            put("")
-
-    Thread(target=run, daemon=True).start()
-
-    async def drain():
-        while not event.is_set():
-            yield await queue.get()
-
-    return StreamingResponse(drain(), media_type="text/event-stream")
+    return StreamingResponse(
+        ctx.sources.test_source(user, req.url, req.content),
+        media_type="text/event-stream",
+    )

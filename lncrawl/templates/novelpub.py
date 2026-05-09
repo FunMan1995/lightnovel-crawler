@@ -83,19 +83,19 @@ class NovelPubTemplate(BrowserTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
         chapter_list_url = f"{novel.url.strip('/')}/chapters"
-        soup = self.scraper.get_soup(chapter_list_url)
+        tag = self.scraper.get_soup(chapter_list_url)
 
         # get the results from first page
-        yield from soup.select(self.chapter_list_selector)
+        yield from tag.select(self.chapter_list_selector)
 
         # get the total number of pages
         page_count = 1
-        for a in soup.select(self.chapter_list_pagination_selector):
+        for a in tag.select(self.chapter_list_pagination_selector):
             match = digit_regex.search(str(a["href"]))
             v = int(match.group(1)) if match else 0
             page_count = max(page_count, v)

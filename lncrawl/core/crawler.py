@@ -228,9 +228,9 @@ class Crawler(ABC):
         chapter.title = format_title(chapter.title)
         chapter.body = (chapter.body or "").strip()
         chapter.success = bool(chapter.body)
-        self.extract_images(chapter)
+        self._extract_images(chapter)
 
-    def extract_images(self, chapter: Chapter) -> None:
+    def _extract_images(self, chapter: Chapter) -> None:
         chapter.setdefault("images", {})
         if ctx.config.crawler.ignore_images or not chapter.body:
             return

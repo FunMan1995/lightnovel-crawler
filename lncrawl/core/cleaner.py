@@ -196,7 +196,7 @@ class TextCleaner:
                 self.clean_attributes(tag)
 
         self.clean_attributes(div)
-        return div
+        return div  # type:ignore
 
     def clean_text(self, text) -> str:
         text = str(text).strip()

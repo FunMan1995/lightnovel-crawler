@@ -6,17 +6,9 @@ from threading import Event, Semaphore, Thread
 from typing import Callable, Generator, Iterable, List, Optional, Set, TypeVar
 
 from tqdm import tqdm
-from tqdm.std import TqdmDefaultWriteLock
 
 from ..context import ctx
 from ..utils.ratelimit import RateLimiter
-
-# lncrawl is purely thread-based; we never run tqdm bars across processes.
-# tqdm's default write lock lazily creates a `multiprocessing.RLock()` (a
-# POSIX named semaphore on macOS), which Python 3.14's resource_tracker then
-# reports as "leaked" at shutdown. Pre-assigning `mp_lock = None` makes
-# tqdm's `create_mp_lock()` a no-op and avoids the warning.
-TqdmDefaultWriteLock.mp_lock = None  # type: ignore[attr-defined]
 
 T = TypeVar("T")
 

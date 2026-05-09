@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Generator, Type
 
 from ...context import ctx
-from ...core.crawler import Crawler
+from ...core import Crawler
 from ...server.models import CrawlerIndex, CrawlerInfo
 from ...utils.log_sink import replace_logger
 from ...utils.time_utils import as_unix_time, current_timestamp
@@ -102,21 +102,20 @@ def import_crawlers(file: Path) -> Generator[Type[Crawler], None, None]:
 
     # extract all valid crawlers
     try:
-        yield from extract_crawlers_from_module(module)
+        yield from extract_crawlers(module)
     except Exception as e:
         logger.info(f"\\[{file}] Failed to extract crawlers: {repr(e)}")
         return
 
 
-def extract_crawlers_from_module(module: types.ModuleType) -> Generator[Type[Crawler], None, None]:
+def extract_crawlers(module: types.ModuleType) -> Generator[Type[Crawler], None, None]:
     assert module.__file__
     mod_name = module.__name__
     file = Path(module.__file__)
     log_sink = replace_logger(module)
+
     for key in dir(module):
         crawler = getattr(module, key)
-
-        # type checks
         if (
             crawler is Crawler
             or type(crawler) is not type(Crawler)
@@ -130,7 +129,6 @@ def extract_crawlers_from_module(module: types.ModuleType) -> Generator[Type[Cra
             logger.info(f"\\[{file}] Incomplete or abstract crawler: {crawler}")
             continue
 
-        # base url checks
         base_url = getattr(crawler, "base_url", [])
         urls = [base_url] if isinstance(base_url, str) else base_url
         urls = [str(url).lower().strip("/") + "/" for url in urls]
@@ -140,13 +138,11 @@ def extract_crawlers_from_module(module: types.ModuleType) -> Generator[Type[Cra
             continue
         crawler.base_url = urls
 
-        # other metdata
-        id = hashlib.md5(str(crawler).encode()).hexdigest()
         file_time = current_timestamp()
         if file.is_file():
             file_time = as_unix_time(file.stat().st_mtime) or file_time
 
-        setattr(crawler, "__id__", id)
+        setattr(crawler, "__id__", hashlib.md5(str(crawler).encode()).hexdigest())
         setattr(crawler, "__logs__", log_sink)
         setattr(crawler, "__file__", str(file))
         setattr(crawler, "__module_obj__", module)

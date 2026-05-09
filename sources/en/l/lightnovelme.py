@@ -71,9 +71,7 @@ class LightNovelsLive(LegacyCrawler):
             else:
                 self.novel_synopsis += "."
 
-        self.novel_tags = ", ".join(
-            [genre["name"] for genre in data["props"]["pageProps"]["genres"]]
-        )
+        self.novel_tags = [genre["name"] for genre in data["props"]["pageProps"]["genres"]]
 
         url = self.absolute_url(chapter_list_url % novel_id)
         data = self.get_json(url)
