@@ -44,9 +44,9 @@ class GitHubService:
         user_link = f"{ctx.config.server.base_url}/admin/user/{user.id}"
         body = (
             f"{req.body}\n\n"
-            f"> Submitted by [{user.name}]({user_link})\n"
-            f"> File: {GithubClient.get_remote_link(file_path)}\n"
-            f"> Test URL: {ctx.config.server.base_url}/source/{domain}/edit\n"
+            f"> Submitted by [{user.name}]({user_link}) <br>\n"
+            f"> From: {ctx.config.server.base_url}/source/{domain} <br>\n"
+            f"> Target: {GithubClient.get_remote_link(file_path)}\n"
         )
 
         user_hash = hashlib.shake_256(user.email.encode()).hexdigest(6)

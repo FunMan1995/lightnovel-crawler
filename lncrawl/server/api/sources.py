@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 
 from ...context import ctx
 from ...dao import User
+from ...exceptions import ServerErrors
 from ..models import (
     CrawlerTestRequest,
     CreatePRRequest,
@@ -40,10 +41,21 @@ def list_sources(
 
 
 @router.get(
+    "/{domain}",
+    summary="Get source item",
+)
+def get_source(domain: str) -> SourceItem:
+    source = ctx.sources.get_source(domain)
+    if source is None:
+        raise ServerErrors.no_crawler.with_extra(domain)
+    return source
+
+
+@router.get(
     "/{domain}/code",
     summary="Get source crawler file content",
 )
-def get_source(domain: str) -> str:
+def get_source_code(domain: str) -> str:
     return ctx.github.get_source_code(domain)
 
 
@@ -60,7 +72,7 @@ def create_source_pr(
 
 
 @router.post(
-    "/test",
+    "/{domain}/test",
     summary="Test crawler source code against a novel URL (Admin only)",
 )
 async def test_source(

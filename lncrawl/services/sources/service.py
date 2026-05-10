@@ -145,7 +145,7 @@ class Sources:
         # load the online index
         self.load_index(online_index)
 
-        # download updated source files
+        # download latest source files
         futures = []
         for id, source in online_index.crawlers.items():
             current = self._index.crawlers.get(id)
@@ -153,7 +153,7 @@ class Sources:
                 continue
             user_sources = ctx.config.crawler.user_sources.parent
             dst_file = (user_sources / source.file_path).resolve()
-            f = self._taskman.submit_task(ctx.github.get_source_code, source.id, dst_file)
+            f = self._taskman.submit_task(ctx.http.download, source.github_url, dst_file)
             futures.append(f)
 
         # wait for completion
