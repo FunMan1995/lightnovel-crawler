@@ -3,14 +3,14 @@
   "permissions": {
     "allow": [
       "PowerShell(cd *)",
-      "PowerShell(yarn *)",
+      "PowerShell(Get-*)",
+      "PowerShell(Select-*)",
       "PowerShell(git status)",
       "PowerShell(git diff *)",
       "PowerShell(git log *)",
       "PowerShell(git fetch *)",
       "PowerShell(git stash *)",
-      "PowerShell(Get-ChildItem *)",
-      "PowerShell(Select-String *)"
+      "PowerShell(uv run ruff *)"
     ]
   },
   "skillOverrides": {

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import atexit
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from threading import Event, Semaphore, Thread
 from typing import Callable, Generator, Iterable, List, Optional, Set, TypeVar
@@ -30,6 +29,7 @@ class TaskManager:
         - ratelimit (float, optional): Number of requests per second.
         """
         self.signal = signal
+        self._bars: List[tqdm] = []
         self._futures: Set[Future] = set()
         self.init_executor(workers, ratelimit)
 
@@ -47,6 +47,8 @@ class TaskManager:
 
     def close(self) -> None:
         self.shutdown()
+        for bar in self._bars:
+            bar.close()
 
     def shutdown(self, wait=False):
         ctx.logger.debug("Shutting down taskmanager")
@@ -113,8 +115,8 @@ class TaskManager:
 
         return f
 
-    @staticmethod
     def progress_bar(
+        self,
         iterable: Optional[Iterable[T]] = None,
         unit: Optional[str] = None,
         desc: Optional[str] = None,
@@ -149,10 +151,10 @@ class TaskManager:
         )
 
         original_close = bar.close
-        atexit.register(original_close)
+        self._bars.append(bar)
 
         def extended_close() -> None:
-            atexit.unregister(original_close)
+            self._bars.remove(bar)
             if not bar.disable:
                 _resolver.release()
             original_close()

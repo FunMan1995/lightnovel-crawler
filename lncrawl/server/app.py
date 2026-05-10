@@ -17,10 +17,12 @@ web_dir = (Path(__file__).parent / "web").absolute()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    ctx.setup()
-    ctx.scheduler.start()
-    yield
-    ctx.destroy()
+    try:
+        ctx.setup()
+        ctx.scheduler.start()
+        yield
+    finally:
+        ctx.destroy()
 
 
 app = FastAPI(
