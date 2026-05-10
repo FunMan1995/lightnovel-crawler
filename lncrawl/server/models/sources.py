@@ -1,10 +1,7 @@
-from functools import cached_property
-from pathlib import Path
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field, computed_field
 
-from ...context import ctx
 from ...utils.github import GithubClient
 
 
@@ -42,16 +39,6 @@ class CrawlerInfo(_CommonSourceInfo):
 
     def __hash__(self) -> int:
         return hash(self.id)
-
-    @cached_property
-    def user_file(self) -> Path:
-        path = ctx.config.crawler.local_sources.parent
-        return (path / self.file_path).absolute()
-
-    @cached_property
-    def local_file(self) -> Path:
-        path = ctx.config.crawler.local_sources.parent
-        return (path / self.file_path).absolute()
 
 
 class CrawlerIndex(BaseModel):

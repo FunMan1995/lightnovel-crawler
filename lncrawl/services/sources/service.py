@@ -196,20 +196,19 @@ class Sources:
             )
         ]
 
-    def get_source(self, domain: str) -> Optional[SourceItem]:
+    def get_source(self, domain: str) -> SourceItem:
         self.ensure_load()
-        return self.sources.get(domain)
-
-    def get_info(self, domain: str) -> Optional[CrawlerInfo]:
-        source = self.get_source(domain)
+        source = self.sources.get(domain)
         if not source:
-            return None
+            raise ServerErrors.no_crawler.with_extra(source)
+        return source
+
+    def get_info(self, domain: str) -> CrawlerInfo:
+        source = self.get_source(domain)
         return self.info[source.crawler_id]
 
-    def get_crawler(self, domain: str) -> Optional[Type[Crawler]]:
+    def get_crawler(self, domain: str) -> Type[Crawler]:
         source = self.get_source(domain)
-        if not source:
-            return None
         return self.crawlers[source.crawler_id]
 
     def find_crawler(self, url: str) -> Type[Crawler]:
@@ -219,10 +218,7 @@ class Sources:
             raise ServerErrors.invalid_url
         if host in self.rejected:
             raise ServerErrors.host_rejected.with_extra(self.rejected[host])
-        source = self.get_source(host)
-        if not source:
-            raise ServerErrors.no_crawler.with_extra(host)
-        return self.crawlers[source.crawler_id]
+        return self.get_crawler(host)
 
     def init_crawler(
         self,
