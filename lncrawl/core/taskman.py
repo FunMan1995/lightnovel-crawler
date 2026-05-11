@@ -29,7 +29,7 @@ class TaskManager:
         - ratelimit (float, optional): Number of requests per second.
         """
         self.signal = signal
-        self._bars: List[tqdm] = []
+        self._bars: Set[tqdm] = set()
         self._futures: Set[Future] = set()
         self.init_executor(workers, ratelimit)
 
@@ -151,10 +151,10 @@ class TaskManager:
         )
 
         original_close = bar.close
-        self._bars.append(bar)
+        self._bars.add(bar)
 
         def extended_close() -> None:
-            self._bars.remove(bar)
+            self._bars.discard(bar)
             if not bar.disable:
                 _resolver.release()
             original_close()

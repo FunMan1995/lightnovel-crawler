@@ -223,15 +223,10 @@ def process_contributors(history):
 
 
 def process_info(info: CrawlerInfo):
-    py_file = info.local_file
-    relative_path = py_file.relative_to(WORKDIR).as_posix()
-    logger.info(f"[cyan]{info.id}[/cyan] {relative_path}")
-
-    info.md5 = hashlib.md5(py_file.read_bytes()).hexdigest()
-    history = git_history(relative_path)
+    logger.info(f"[cyan]{info.id}[/cyan] {info.file_path}")
+    history = git_history(info.file_path)
     if history:
         info.total_commits = len(history)
-        info.version = history[0]["time"]
         info.contributors = process_contributors(history)
 
     INDEX_DATA["crawlers"][info.id] = info.model_dump()
