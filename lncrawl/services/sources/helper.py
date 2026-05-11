@@ -139,16 +139,17 @@ def extract_crawlers(module: types.ModuleType) -> Generator[Type[Crawler], None,
             continue
         crawler.base_url = urls
 
-        file_time = current_timestamp()
         if file.is_file():
-            file_time = as_unix_time(file.stat().st_mtime) or file_time
+            file_time = int(file.stat().st_mtime)
+        else:
+            file_time = current_timestamp() // 1000
 
         id = hashlib.md5(str(crawler).encode()).hexdigest()
         setattr(crawler, "__id__", id)
         setattr(crawler, "__logs__", log_sink)
         setattr(crawler, "__file__", str(file))
         setattr(crawler, "__module_obj__", module)
-        setattr(crawler, "version", file_time // 1000)
+        setattr(crawler, "version", file_time)
 
         yield crawler
 

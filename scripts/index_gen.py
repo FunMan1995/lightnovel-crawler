@@ -225,6 +225,7 @@ def process_info(info: CrawlerInfo):
     logger.info(f"[cyan]{info.id}[/cyan] {info.file_path}")
     history = git_history(info.file_path)
     if history:
+        info.version = history[0]["time"]
         info.total_commits = len(history)
         info.contributors = process_contributors(history)
 
