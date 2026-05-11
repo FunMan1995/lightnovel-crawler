@@ -4,7 +4,6 @@ Build lightnovel-crawler source index to use for update checking.
 """
 
 import gzip
-import hashlib
 import json
 import logging
 import os
