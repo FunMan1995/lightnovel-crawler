@@ -32,6 +32,11 @@ class _CommonSourceInfo(BaseModel):
     def github_url(self) -> str:
         return GithubClient.get_remote_link(self.file_path)
 
+    @computed_field  # type: ignore[misc]
+    @property
+    def github_edit_url(self) -> str:
+        return GithubClient.get_remote_edit_link(self.file_path)
+
 
 class CrawlerInfo(_CommonSourceInfo):
     id: str = Field(..., description="Crawler ID")

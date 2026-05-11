@@ -43,6 +43,10 @@ class GithubClient:
     def get_remote_link(file_path: str, branch: str = _DEFAULT_BRANCH):
         return f"https://github.com/{_GITHUB_REPO}/blob/{branch}/{file_path.strip('/')}"
 
+    @staticmethod
+    def get_remote_edit_link(file_path: str, branch: str = _DEFAULT_BRANCH):
+        return f"https://github.com/{_GITHUB_REPO}/edit/{branch}/{file_path.strip('/')}"
+
     def get_sha(self, branch: str):
         return (
             self._gh.get(f"/repos/{_GITHUB_REPO}/git/ref/heads/{branch}")
