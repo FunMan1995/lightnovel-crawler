@@ -81,10 +81,11 @@ async def test_source(
     user: User = Security(ensure_user),
 ) -> StreamingResponse:
     code = ctx.github.get_source_code(domain)
-    if code != req.content and user.is_admin:
-        raise ServerErrors.forbidden.with_extra(
-            "Modified source code can only be executed by administrators. "
-            "Revert your changes or contact an admin to proceed."
+    if code != req.content and not user.is_admin:
+        return StreamingResponse(
+            "<!> Modified source code can only be executed by administrators."
+            " Revert your changes or contact an admin to proceed.",
+            media_type="text/plain",
         )
     return StreamingResponse(
         ctx.sources.test_source(req.url, req.content),
