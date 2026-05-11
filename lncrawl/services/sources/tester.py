@@ -1,20 +1,8 @@
-"""
-Isolated subprocess runner for testing crawler source code.
-
-Protocol:
-  stdin  — JSON: {"url": "<novel url>", "content": "<python source>"}
-  stdout — plain text lines, streamed as the test progresses
-  exit 0 — TEST PASSED, exit 1 — TEST FAILED / error
-
-Run as:  python -m lncrawl.services.sources.runner
-"""
-
 import hashlib
 import types
 from typing import Any, Callable, List, Type
 
 from lncrawl.core import Chapter, Crawler, Novel
-from lncrawl.dao import User, UserRole
 from lncrawl.services.sources.helper import extract_crawlers
 from lncrawl.utils.log_sink import LogSink
 from lncrawl.utils.url_tools import extract_base
@@ -33,14 +21,10 @@ def parse_content(host: str, content: str):
 
 
 def run_crawler_test(
-    user: User,
     url: str,
     content: str,
     emit: Callable[[str], Any],
 ) -> None:
-    if user.role != UserRole.ADMIN:
-        pass
-
     _W = 50
 
     def step(msg: str) -> None:

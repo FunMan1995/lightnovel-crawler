@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Type
 
 from ...context import ctx
 from ...core import Crawler, TaskManager
-from ...dao import User
 from ...exceptions import ServerErrors
 from ...server.models import CrawlerIndex, CrawlerInfo, SourceItem
 from ...utils.fts_store import FTSStore
@@ -251,7 +250,11 @@ class Sources:
         crawler.initialize()
         return crawler
 
-    async def test_source(self, user: User, url: str, content: str):
+    async def test_source(self, url: str, content: str):
+        # WARNING: This function executes arbitrary Python source code directly in the
+        # running process. It is intended solely for trusted developer use. Never pass
+        # unverified or user-supplied content — doing so is a critical security risk
+        # (remote code execution). USE WITH EXTREME CAUTION.
         event = Event()
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue[str] = asyncio.Queue()
@@ -261,7 +264,7 @@ class Sources:
 
         def run():
             try:
-                run_crawler_test(user, url, content, emit)
+                run_crawler_test(url, content, emit)
                 emit("\nTEST PASSED!")
             except Exception as e:
                 emit(f"<!> {repr(e)}\n{traceback.format_exc()}")

@@ -12,7 +12,7 @@ from ..models import (
     CreatePRResponse,
     SourceItem,
 )
-from ..security import ensure_admin, ensure_user
+from ..security import ensure_user
 
 router = APIRouter()
 
@@ -76,10 +76,17 @@ def create_source_pr(
     summary="Test crawler source code against a novel URL (Admin only)",
 )
 async def test_source(
+    domain: str = Path(),
     req: CrawlerTestRequest = Body(...),
-    user: User = Security(ensure_admin),
+    user: User = Security(ensure_user),
 ) -> StreamingResponse:
+    code = ctx.github.get_source_code(domain)
+    if code != req.content and user.is_admin:
+        raise ServerErrors.forbidden.with_extra(
+            "Modified source code can only be executed by administrators. "
+            "Revert your changes or contact an admin to proceed."
+        )
     return StreamingResponse(
-        ctx.sources.test_source(user, req.url, req.content),
+        ctx.sources.test_source(req.url, req.content),
         media_type="text/event-stream",
     )

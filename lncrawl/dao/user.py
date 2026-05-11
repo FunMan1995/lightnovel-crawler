@@ -29,6 +29,10 @@ class User(BaseTable, table=True):
         description="Email verification status",
     )
 
+    @property
+    def is_admin(self):
+        return self.role == UserRole.ADMIN
+
 
 class UserToken(sa.SQLModel, table=True):
     __tablename__ = "user_tokens"  # type: ignore
