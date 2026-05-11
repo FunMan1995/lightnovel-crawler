@@ -196,6 +196,14 @@ class Sources:
             )
         ]
 
+    def get_domain(self, url: str) -> str:
+        host = extract_host(url)
+        if not host:
+            raise ServerErrors.invalid_url
+        if host in self.rejected:
+            raise ServerErrors.host_rejected.with_extra(self.rejected[host])
+        return host
+
     def get_source(self, domain: str) -> SourceItem:
         self.ensure_load()
         source = self.sources.get(domain)
@@ -213,32 +221,28 @@ class Sources:
 
     def find_crawler(self, url: str) -> Type[Crawler]:
         self.ensure_load()
-        host = extract_host(url)
-        if not host:
-            raise ServerErrors.invalid_url
-        if host in self.rejected:
-            raise ServerErrors.host_rejected.with_extra(self.rejected[host])
-        return self.get_crawler(host)
+        return self.get_crawler(self.get_domain(url))
 
     def init_crawler(
         self,
-        constructor: Type[Crawler],
+        url: str,
         workers: Optional[int] = None,
         parser: Optional[str] = None,
         renew: bool = False,
     ) -> Crawler:
+        domain = self.get_domain(url)
+        source = self.get_source(domain)
+        constructor = self.crawlers[source.crawler_id]
         if constructor in _crawlers_cache:
             if renew:
                 _crawlers_cache.pop(constructor).close()
             else:
                 return _crawlers_cache[constructor]
 
-        url = getattr(constructor, "url")
-        ctx.logger.debug(f"Creating crawler instance for {url}")
-
         # create instance
+        ctx.logger.debug(f"Creating crawler instance for {url}")
         crawler = constructor(
-            origin=url,
+            origin=source.url,
             workers=workers,
             parser=parser,
         )

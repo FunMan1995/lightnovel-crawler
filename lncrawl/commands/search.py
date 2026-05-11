@@ -194,8 +194,7 @@ def _search_job(source: SourceItem, query: str, signal: Event) -> List[SearchRes
     url = source.url
     logger.info(f"[green]{url}[/green] Searching...")
     try:
-        setattr(source.crawler, "url", url)
-        crawler = ctx.sources.init_crawler(source.crawler)
+        crawler = ctx.sources.init_crawler(url)
         crawler.scraper.signal = signal
         results = crawler.search(query)
         results = [SearchResult(**item) for item in results]

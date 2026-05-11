@@ -150,7 +150,8 @@ class JobService:
         depends_on: Optional[str] = None,
         **data: Any,
     ) -> Job:
-        ctx.sources.find_crawler(url)  # validate
+        domain = ctx.sources.get_domain(url)
+        ctx.sources.get_source(domain)  # validate
         data.update({"url": url})
         novel = ctx.novels.find_by_url(url)
         if novel:
