@@ -5,7 +5,7 @@
 .PHONY: all \
 	version submodule clean ensure-uv setup sync install upgrade \
 	major minor patch \
-	lint lint-fixstart watch add-source \
+	lint lint-fix start dev watch add-source \
 	index-gen check-sources \
 	build-wheel build-exe build \
 	docker-base docker-build docker-up docker-down docker-logs \
@@ -119,8 +119,10 @@ lint-fix:
 start:
 	$(UV) run python -m lncrawl -ll server
 
-watch:
+dev:
 	$(UV) run python -m lncrawl -ll server --watch
+
+watch: dev
 
 add-source:
 	$(UV) run python -m lncrawl -ll sources create
