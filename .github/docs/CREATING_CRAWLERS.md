@@ -15,11 +15,11 @@ Once you add a crawler, users can download novels from that site through the app
 
 ## What you’ll need
 
-- **Python 3** and the project set up (clone the repo, then `make install` or `uv sync --extra dev` after submodules are initialized).
+- **Python 3** and the project set up (clone the repo, then `make install` or `uv sync --all-extras --all-groups` after submodules are initialized).
 - **The novel site’s URL** you want to support.
 - **Basic familiarity with HTML** — you’ll use CSS selectors (e.g. `div.chapter-content`) to pick elements. No need to be an expert; you can copy from existing crawlers and tweak.
 
-> **New to the project?** From the repo root run `make install` (or `uv sync --extra dev`). See the main README and root `Makefile` for setup.
+> **New to the project?** From the repo root run `make install` (or `uv sync --all-extras --all-groups`). See the main README and root `Makefile` for setup.
 
 ---
 
@@ -266,7 +266,7 @@ Run these from the **project root** (where `Makefile` and `pyproject.toml` live)
 
    ```bash
    make install
-   # or: uv sync --extra dev
+   # or: uv sync --all-extras --all-groups
    ```
 
 2. **Run a quick download test.** Replace the URL with a real novel URL from your site. `--first 3` only downloads 3 chapters; `-f` overwrites existing output:

@@ -391,7 +391,7 @@ class BrowserTemplate(SoupTemplate):
 
         def override_close() -> None:
             _close()
-            self.__dict__.pop("browser", None)
+            self.__dict__.pop("browser", None)  # type:ignore
 
         def override_visit(url: str) -> None:
             _visit(url)

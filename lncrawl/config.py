@@ -303,6 +303,19 @@ class AppConfig(_Section):
     def admin_password(self, v: str) -> None:
         self._set("admin_password", v)
 
+    @property
+    def history_limit_per_user(self) -> int:
+        """Read History Limit Per User.
+
+        Maximum number of read-history entries kept per user. Oldest entries are dropped when the
+        limit is reached. Default is `5000`.
+        """
+        return self._get("history_limit_per_user", 5000)
+
+    @history_limit_per_user.setter
+    def history_limit_per_user(self, v: int) -> None:
+        self._set("history_limit_per_user", v)
+
 
 # ------------------------------------------------------------------ #
 #                          Database Section                          #

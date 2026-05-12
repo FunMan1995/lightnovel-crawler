@@ -74,6 +74,8 @@ def _parse_property_doc(doc: Optional[str], attr_name: str) -> Tuple[str, str]:
 
 
 def _get_value_kind(attr: property) -> Tuple[str, bool]:
+    if not attr.fget:
+        raise KeyError("no fget. probably not a getter.")
     anns = inspect.get_annotations(attr.fget, eval_str=True)
     return_type = anns.get("return")
     if return_type is None:

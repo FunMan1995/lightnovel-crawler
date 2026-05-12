@@ -186,13 +186,13 @@ Equivalent with uv only (after submodules are initialized):
 
 ```bash
 git submodule update --init --recursive
-uv sync --extra dev
+uv sync --all-extras --all-groups
 uv run python -m lncrawl -ll server
 ```
 
 ### Makefile reference
 
-Targets are defined in the [Makefile](Makefile); `install` / `sync` / dependency targets use `uv sync --extra dev`.
+Targets are defined in the [Makefile](Makefile); `install` / `sync` / dependency targets use `uv sync --all-extras --all-groups`.
 
 ```bash
 # Setup and install

@@ -75,6 +75,7 @@ dev = [
   "lxml-stubs>=0.5.0",
   "pre-commit>=4.3.0",
   "pyinstaller>=6.0.0",
+  "pyright>=1.1.409",
   "ruff>=0.9.0",
   "setuptools>=75.3.0",
   "tk-tools>=0.16.0",
@@ -131,13 +132,17 @@ target-version = "py39"
 
 [tool.ruff.lint]
 extend-select = [
-  "I",      # isort
-  "E",      # pycodestyle
-  "F",      # Pyflakes
-  # "UP",   # pyupgrade
-  # "B",    # flake8-bugbear
-  # "SIM",  # flake8-simplify
+  "I", # isort
+  "E", # pycodestyle
+  "W", # pycodestyle
+  "F", # Pyflakes
 ]
+#"N",     # pep8-naming
+#"UP",    # pyupgrade
+#"B",     # flake8-bugbear
+#"S",     # flake8-bandit
+#"SIM",   # flake8-simplify
+#"ANN",   # flake8-annotations
 ignore = ["E203", "E265", "E501"]
 
 [tool.ruff.lint.isort]
@@ -145,3 +150,10 @@ known-first-party = ["lncrawl"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.pyright]
+# Completely suppress all errors from these paths
+ignore = [
+  "scripts/**",
+  "lncrawl/cloudscraper",
+]
