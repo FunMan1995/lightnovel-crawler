@@ -205,6 +205,8 @@ class Sources:
 
     def get_source(self, domain: str) -> SourceItem:
         self.ensure_load()
+        if domain.startswith("www."):
+            domain = domain[4:]
         source = self.sources.get(domain)
         if not source:
             raise ServerErrors.no_crawler.with_extra(source)
