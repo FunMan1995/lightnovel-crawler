@@ -149,7 +149,9 @@ def __send_cdp(driver: WebDriver, cmd: str, params: dict = {}):
     resource = f"/session/{driver.session_id}/chromium/send_command_and_get_result"
     if not isinstance(driver.command_executor, RemoteConnection):
         raise Exception("driver.command_executor is not a RemoteConnection")
-    url = f"{driver.command_executor._client_config.remote_server_addr}{resource}"
+    client_config = driver.command_executor._client_config
+    assert client_config is not None, "driver.command_executor has no _client_config"
+    url = f"{client_config.remote_server_addr}{resource}"
     body = json.dumps({"cmd": cmd, "params": params})
     driver.command_executor._request("POST", url, body)
 

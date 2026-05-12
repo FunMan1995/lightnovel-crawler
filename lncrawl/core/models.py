@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Self
+from typing import Any, Dict, List, Optional
 
 from box import Box
 from pydantic import BaseModel
@@ -53,7 +53,7 @@ def _json_safe(v: Any, _seen=set()) -> Any:
 
 
 class _ModelBox(Box):
-    def __new__(cls, *args: Any, **kwargs: Any) -> Self:
+    def __new__(cls, *args: Any, **kwargs: Any):
         obj = super().__new__(cls, *args, **kwargs)
         existing = obj._box_config.get("box_intact_types", ())
         if _ModelBox not in existing:

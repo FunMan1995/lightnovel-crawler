@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, TypeVar
+from typing import Any, Optional, TypeVar, Union
 
 _log = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ def json_encode(data: Any, encoding: str = "utf-8") -> bytes:
         return b""
 
 
-def json_decode(data: str | bytes | bytearray | None, _default: T) -> T:
+def json_decode(data: Optional[Union[str, bytes, bytearray]], _default: T) -> T:
     try:
         if isinstance(data, bytearray):
             data = bytes(data)
