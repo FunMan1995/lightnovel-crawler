@@ -1,5 +1,4 @@
 import logging
-import socket
 import threading
 
 import webview
@@ -8,21 +7,14 @@ from ..commands.server import server
 from ..config import APP_DIR
 from ..context import ctx
 from ..dao.enums import UserRole
+from ..utils.sockets import free_port
 
 logger = logging.getLogger(__name__)
 
 
 def start() -> None:
     host = "localhost"
-
-    # Find an available port
-    port = 31580
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        try:
-            s.bind((host, port))
-        except OSError:
-            s.bind((host, 0))
-            port = s.getsockname()[1]
+    port = free_port(host, 31580)
 
     # Setup context
     ctx.setup(reset_db_on_failure=True)
