@@ -11,6 +11,7 @@ from ..core import Crawler
 from ..core import Novel as CrawlerNovel
 from ..dao import Chapter, ChapterImage, Novel
 from ..exceptions import ServerErrors
+from ..utils.url_tools import extract_host
 
 logger = logging.getLogger(__name__)
 
@@ -65,15 +66,16 @@ class CrawlerService:
             if not novel:
                 novel = Novel(
                     url=novel_url,
-                    domain=url.host,
                     title=model.title,
                     cover_url=model.cover_url,
+                    domain=extract_host(novel_url),
                 )
 
             # update novel
             novel.title = model.title
             novel.authors = model.author
             novel.cover_url = model.cover_url
+            novel.domain = extract_host(novel_url)
             novel.manga = model.is_manga or crawler.has_manga
             novel.mtl = model.is_mtl or crawler.has_mtl
             novel.synopsis = model.synopsis
