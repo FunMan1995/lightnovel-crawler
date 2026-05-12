@@ -275,6 +275,18 @@ class PageSoup:
             pass
         return ""
 
+    def prettify(self, inner: bool = False) -> str:
+        """Pretty-print this Tag as a string."""
+        try:
+            if self._tag:
+                if inner:
+                    return self._tag.decode_contents(0)
+                else:
+                    return self._tag.decode(0)
+        except Exception:
+            pass
+        return ""
+
     # ------------------------------------------------------------------ #
     # Tag information
     # ------------------------------------------------------------------ #

@@ -2,7 +2,7 @@ import hashlib
 import types
 from typing import Any, Callable, List, Type
 
-from lncrawl.core import Chapter, Crawler, Novel
+from lncrawl.core import Chapter, Crawler, Novel, PageSoup
 from lncrawl.services.sources.helper import extract_crawlers
 from lncrawl.utils.log_sink import LogSink
 from lncrawl.utils.url_tools import extract_base
@@ -54,7 +54,7 @@ def run_crawler_test(
         meta("chapters", f"{len(novel.chapters)}")
 
         section("Novel Data")
-        emit(novel.to_yaml(indent=2, sort_keys=False))
+        emit(novel.to_yaml(indent=4, sort_keys=False))
         divider()
 
     def show_chapter(chapter: Chapter):
@@ -64,7 +64,7 @@ def run_crawler_test(
         meta("extras", str(chapter.get_extras()))
 
         section(f"Chapter {chapter.id}")
-        emit(chapter.body or "[No Content]")
+        emit(PageSoup.create(chapter.body).find("body").prettify(True))
         emit("─" * 50)
 
     def show_crawler_cls(crawler_cls: Type[Crawler]):
