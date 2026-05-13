@@ -19,6 +19,7 @@ web_dir = (Path(__file__).parent / "web").absolute()
 async def lifespan(_app: FastAPI):
     try:
         ctx.setup()
+        ctx.lsp.start()
         ctx.scheduler.start()
         yield
     finally:

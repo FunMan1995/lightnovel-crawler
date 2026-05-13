@@ -10,6 +10,7 @@ from .feedback import router as feedback
 from .history import router as history
 from .jobs import router as job
 from .libraries import router as library
+from .lsp import router as lsp
 from .meta import router as metadata
 from .novels import router as novel
 from .settings import router as settings
@@ -18,6 +19,10 @@ from .users import router as user
 from .volumes import router as volume
 
 router = APIRouter()
+
+# WebSocket routers handle their own auth and are mounted first so they don't
+# inherit HTTP security dependencies from the parent router.
+router.include_router(lsp, tags=["LSP"])
 
 router.include_router(
     auth,

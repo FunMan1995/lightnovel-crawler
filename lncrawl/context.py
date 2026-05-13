@@ -152,6 +152,12 @@ class __AppContext__:
         return BinderService()
 
     @cached_property
+    def lsp(self):
+        from .services.lsp import PythonLanguageServer
+
+        return PythonLanguageServer()
+
+    @cached_property
     def scheduler(self):
         from .services.scheduler import JobScheduler
 
@@ -170,6 +176,7 @@ class __AppContext__:
         self.sources.close()
         self.mail.close()
         self.db.close()
+        self.lsp.stop()
 
     def setup(
         self,

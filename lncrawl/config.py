@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import json
-import logging
-import os
-import time
-import uuid
 from datetime import datetime
 from decimal import Decimal
 from functools import cached_property
+import json
+import logging
+import os
 from pathlib import Path
-from typing import Annotated, Any, Callable, Dict, Optional, Type, TypeVar, Union, cast
+import time
+from typing import Annotated, Any, Callable, Dict, Literal, Optional, Type, TypeVar, Union, cast
+import uuid
 
 import dotenv
 import typer
@@ -31,9 +31,9 @@ DEFAULT_CONFIG_FILE = APP_DIR / "config.json"
 
 
 class Sensitive:
-    """Use with ``typing.Annotated`` on config property return types.
+    """Use with `typing.Annotated` on config property return types.
 
-    Properties marked this way are listed in the admin API with ``sensitive=True``.
+    Properties marked this way are listed in the admin API with `sensitive=True`.
     """
 
 
@@ -147,6 +147,11 @@ class Config(object):
     def mail(self):
         """Mail Settings."""
         return MailConfig(self)
+
+    @cached_property
+    def lsp(self):
+        """LSP Server Settings."""
+        return PythonLanguageServerConfig(self)
 
     # -------------------------------------------------------------- #
 
@@ -669,3 +674,67 @@ class MailConfig(_Section):
     @smtp_sender.setter
     def smtp_sender(self, v: str) -> None:
         self._set("smtp_sender", v)
+
+
+# ------------------------------------------------------------------ #
+#                   PythonLanguageServer Section                             #
+# ------------------------------------------------------------------ #
+
+
+class PythonLanguageServerConfig(_Section):
+    section = "lsp"
+
+    @property
+    def enabled(self) -> bool:
+        """LSP Server Enabled.
+
+        Start a python-lsp-server process alongside the web server so editors
+        can connect for code intelligence on crawler sources. Requires the
+        `lsp` optional dependency to be installed. Off by default.
+        """
+        return self._get("enabled", False)
+
+    @enabled.setter
+    def enabled(self, v: bool) -> None:
+        self._set("enabled", v)
+
+    @property
+    def host(self) -> str:
+        """LSP Server Host.
+
+        Address the language server binds to. Use `127.0.0.1` (default) to
+        allow only local connections, or `0.0.0.0` to accept remote clients.
+        Only applies to `tcp` mode; WebSocket mode always binds all interfaces.
+        """
+        return self._get("host", "127.0.0.1")
+
+    @host.setter
+    def host(self, v: str) -> None:
+        self._set("host", v)
+
+    @property
+    def port(self) -> int:
+        """LSP Server Port.
+
+        Network port for the language server. Setting it to 0 will choose
+        a random free port. Default is `0`.
+        """
+        return self._get("port", 0)
+
+    @port.setter
+    def port(self, v: int) -> None:
+        self._set("port", v)
+
+    @property
+    def mode(self) -> Literal["ws", "tcp"]:
+        """LSP Transport Mode.
+
+        How the language server accepts connections. Accepted values: `ws`, `tcp`
+        """
+        return self._get("mode", "ws")
+
+    @mode.setter
+    def mode(self, v: str) -> None:
+        if v not in ("tcp", "ws"):
+            raise ValueError(f"mode must be 'tcp' or 'ws', got {v!r}")
+        self._set("mode", v)
