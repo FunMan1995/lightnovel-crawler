@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 
 class GitHubService:
     def get_source_code(self, domain: str) -> str:
+        ctx.sources.update()
         source = ctx.sources.get_source(domain)
         file_path = source.file_path
         file = ctx.config.crawler.local_sources.parent / file_path
