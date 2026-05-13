@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
-from threading import Event, Thread
+from threading import Event, Lock, Thread
 from typing import IO, List, Optional
 
 from ..context import ctx
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 class PythonLanguageServer:
     def __init__(self) -> None:
         self._signal = Event()
+        self._lock = Lock()
         self._process: Optional[subprocess.Popen[str]] = None
         self.mode = ctx.config.lsp.mode
         self.host = ctx.config.lsp.host
@@ -29,7 +30,17 @@ class PythonLanguageServer:
     def is_running(self) -> bool:
         return self._process is not None and self._process.poll() is None
 
+    def restart_if_needed(self) -> None:
+        """Restart the process if it has exited (e.g. after a client disconnect)."""
+        if not self.is_running and ctx.config.lsp.enabled:
+            logger.info("LSP process has exited; restarting")
+            self.start()
+
     def start(self) -> None:
+        with self._lock:
+            self._start_locked()
+
+    def _start_locked(self) -> None:
         if self.is_running:
             logger.warning("LSP service is already running")
             return

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 
 from fastapi import APIRouter, Query, WebSocket, status
 
@@ -8,6 +9,20 @@ from ...context import ctx
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _wait_for_lsp_ready(host: str, port: int, timeout: float = 5.0) -> bool:
+    """Return True once the LSP port accepts TCP connections, False on timeout."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            _, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
+            return True
+        except (ConnectionRefusedError, OSError):
+            await asyncio.sleep(0.1)
+    return False
 
 
 @router.websocket("/lsp")
@@ -22,15 +37,20 @@ async def lsp_proxy(ws: WebSocket, token: str = Query()):
         await ws.close(code=status.WS_1008_POLICY_VIOLATION)
         return
 
+    # pylsp (WS mode) crashes on client disconnect — restart it on demand.
     if not ctx.lsp.is_running:
+        ctx.lsp.restart_if_needed()
+
+    # Always connect to the local process; 0.0.0.0 is a listen wildcard,
+    # not a valid connect destination.
+    host = "127.0.0.1" if ctx.lsp.host == "0.0.0.0" else ctx.lsp.host
+
+    if not ctx.lsp.is_running or not await _wait_for_lsp_ready(host, ctx.lsp.port):
         await ws.close(code=status.WS_1011_INTERNAL_ERROR)
         return
 
     await ws.accept()
 
-    # Always connect to the local process; 0.0.0.0 is a listen wildcard,
-    # not a valid connect destination.
-    host = "127.0.0.1" if ctx.lsp.host == "0.0.0.0" else ctx.lsp.host
     try:
         if ctx.lsp.mode == "ws":
             await _relay_ws(ws, host, ctx.lsp.port)
