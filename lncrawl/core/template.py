@@ -1,4 +1,4 @@
-from typing import Iterable, Optional, overload
+from typing import Iterable, Optional
 
 from ..context import ctx
 from ..exceptions import LNException
@@ -224,12 +224,6 @@ class SoupTemplate(CrawlerTemplate):
     # Parser methods for Chapter list
     # ------------------------------------------------------------------------- #
 
-    @overload
-    def parse_chapter_list(self, tag: PageSoup, novel: Novel) -> None: ...
-
-    @overload
-    def parse_chapter_list(self, tag: PageSoup, novel: Novel, volume: Volume) -> None: ...
-
     def parse_chapter_list(
         self, tag: PageSoup, novel: Novel, volume: Optional[Volume] = None
     ) -> None:
@@ -245,14 +239,6 @@ class SoupTemplate(CrawlerTemplate):
             if volume is not None:
                 chapter.volume = volume.id
             novel.chapters.append(chapter)
-
-    @overload
-    def select_chapter_tags(self, tag: PageSoup, novel: Novel) -> Iterable[PageSoup]: ...
-
-    @overload
-    def select_chapter_tags(
-        self, tag: PageSoup, novel: Novel, volume: Volume
-    ) -> Iterable[PageSoup]: ...
 
     def select_chapter_tags(
         self, tag: PageSoup, novel: Novel, volume: Optional[Volume] = None
