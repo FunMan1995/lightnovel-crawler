@@ -99,7 +99,7 @@ class Sources:
             *ctx.config.crawler.local_sources.glob("**/*.py"),
             *ctx.config.crawler.user_sources.glob("**/*.py"),
         )
-    
+
     def load_crawlers(self, *files: Path):
         for crawler in batch_import(*files):
             self.add_crawler(crawler)
@@ -164,7 +164,7 @@ class Sources:
             dst_file = (user_sources / source.file_path).resolve()
             ctx.http.download(source.github_url, dst_file)
             self.load_crawlers(dst_file)
-        except Exception as e:
+        except Exception:
             logger.warning(f"Failed to download source: {source.github_url}", exc_info=True)
 
     def list(
