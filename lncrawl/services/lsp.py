@@ -67,11 +67,8 @@ class PythonLanguageServer:
         self._start_pipe_reader(self._process.stdout, logging.DEBUG)
         self._start_pipe_reader(self._process.stderr, logging.WARNING)
         logger.info(
-            "LSP server started (pid=%d) on %s:%d [%s]",
-            self._process.pid,
-            ctx.config.lsp.host,
-            ctx.config.lsp.port,
-            ctx.config.lsp.mode,
+            f"LSP server started (pid={self._process.pid}) "
+            + f"on {self.host}:{self.port} [{self.mode}]"
         )
 
     def stop(self) -> None:
@@ -97,7 +94,7 @@ class PythonLanguageServer:
 
     def _build_cmd(self) -> List[str]:
         if self.port == 0:
-            self.port = free_port(self.host)
+            self.port = free_port(self.host, self.port)
         cmd = [sys.executable, "-m", "pylsp"]
         if self.mode == "ws":
             cmd += ["--ws", "--host", self.host, "--port", str(self.port)]
