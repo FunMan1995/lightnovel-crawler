@@ -1,6 +1,6 @@
 import typer
-import uvicorn
 from typing_extensions import Annotated
+import uvicorn
 
 from ..context import ctx
 

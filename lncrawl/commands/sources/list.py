@@ -3,11 +3,11 @@ import json
 import sys
 from typing import Optional
 
-import typer
-import yaml
 from rich import print
 from rich.table import Table
 from rich.text import Text
+import typer
+import yaml
 
 from ...assets.icons import Icons
 from ...context import ctx

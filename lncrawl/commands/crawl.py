@@ -2,10 +2,10 @@ import logging
 from typing import Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import questionary
-import typer
 from rich import print
 from rich.console import Console
 from rich.panel import Panel
+import typer
 
 from ..context import ctx
 from ..dao import Artifact, Chapter, Novel, OutputFormat, Volume

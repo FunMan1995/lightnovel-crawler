@@ -7,9 +7,9 @@ Create Date: 2026-03-06 08:21:49.013198
 
 from typing import Sequence, Union
 
-import sqlmodel as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+import sqlmodel as sa
 from sqlmodel.sql.sqltypes import AutoString
 
 from lncrawl.dao import enums

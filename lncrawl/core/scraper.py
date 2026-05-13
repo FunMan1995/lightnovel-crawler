@@ -1,6 +1,6 @@
 import base64
-import logging
 from io import BytesIO
+import logging
 from pathlib import Path
 from typing import Any, MutableMapping, Optional, Tuple, Union
 

@@ -1,5 +1,5 @@
-import random
 from enum import Enum
+import random
 from typing import Generator, Tuple
 
 from ..assets.colors import material_colors

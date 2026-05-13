@@ -1,7 +1,7 @@
 import logging
+from pathlib import Path
 import shlex
 import subprocess
-from pathlib import Path
 from threading import Event
 from typing import Optional
 

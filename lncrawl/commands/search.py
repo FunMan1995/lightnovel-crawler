@@ -1,13 +1,13 @@
-import logging
 from concurrent.futures import Future
 from difflib import SequenceMatcher
+import logging
 from threading import Event
 from typing import List, Optional
 
 import questionary
-import typer
 from rich import print
 from slugify import slugify
+import typer
 
 from ..context import ctx
 from ..core import CombinedSearchResult, SearchResult, TaskManager

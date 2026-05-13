@@ -1,7 +1,7 @@
-import logging
-import traceback
 from functools import cached_property
+import logging
 from threading import Event
+import traceback
 from typing import Any, Dict, Iterable, Optional, Set
 
 from ...context import ctx

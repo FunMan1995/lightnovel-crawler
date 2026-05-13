@@ -1,6 +1,6 @@
-import json
 from functools import cached_property
 from io import BytesIO
+import json
 from typing import (
     Any,
     Callable,

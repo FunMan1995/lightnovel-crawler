@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 from concurrent import futures
+import logging
 
 from lncrawl.core import Chapter, LegacyCrawler, Volume
 

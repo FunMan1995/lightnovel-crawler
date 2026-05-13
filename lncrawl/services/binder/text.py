@@ -1,7 +1,7 @@
 import logging
-import zipfile
 from pathlib import Path
 from threading import Event
+import zipfile
 
 from ...context import ctx
 from ...dao import Artifact

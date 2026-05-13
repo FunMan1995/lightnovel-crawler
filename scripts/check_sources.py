@@ -15,23 +15,23 @@ Formatted summary (Rich) is written to stderr; stdout is one down URL per line f
 
 from __future__ import annotations
 
-import json
-import sys
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 from pathlib import Path
+import sys
 from threading import Lock
+import time
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from urllib.parse import urlparse
 
 import httpx
-import typer
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 from tqdm import tqdm
+import typer
 
 workdir = Path(__file__).parent.parent.absolute()
 sys.path.insert(0, str(workdir))

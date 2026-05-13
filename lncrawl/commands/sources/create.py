@@ -1,12 +1,12 @@
+from enum import Enum
 import logging
 import re
-from enum import Enum
 from typing import List, Optional
 
-import questionary
-import typer
 from openai import OpenAI
+import questionary
 from rich import print
+import typer
 
 from ...assets.languages import language_codes
 from ...context import ctx

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
 from functools import cached_property
+import sys
 
 if not __package__ and not hasattr(sys, "frozen"):
     import os.path

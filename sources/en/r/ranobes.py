@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
+from concurrent.futures import Future
 import json
 import logging
 import re
-from concurrent.futures import Future
 from typing import List, Optional
 from urllib.parse import quote_plus, urljoin
 

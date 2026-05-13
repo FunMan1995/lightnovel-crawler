@@ -6,9 +6,7 @@ from pydantic import HttpUrl
 from sqlmodel import select
 
 from ..context import ctx
-from ..core import Chapter as CrawlerChapter
-from ..core import Crawler
-from ..core import Novel as CrawlerNovel
+from ..core import Chapter as CrawlerChapter, Crawler, Novel as CrawlerNovel
 from ..dao import Chapter, ChapterImage, Novel
 from ..exceptions import ServerErrors
 from ..utils.url_tools import extract_host

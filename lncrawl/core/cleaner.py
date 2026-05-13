@@ -1,8 +1,8 @@
 import itertools
 import re
 import sys
-import unicodedata
 from typing import Any, Dict, List, Set, TypeVar, Union
+import unicodedata
 
 from bs4 import Comment, Tag
 

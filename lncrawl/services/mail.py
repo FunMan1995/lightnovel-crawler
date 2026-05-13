@@ -1,5 +1,5 @@
-import logging
 from email.mime.text import MIMEText
+import logging
 from smtplib import SMTP
 from typing import Optional
 

@@ -3,8 +3,8 @@ from __future__ import annotations
 from functools import cached_property
 from typing import Any, Dict, Generator, List, Optional, Union
 
-import lxml.etree as etree
 from bs4 import BeautifulSoup, Tag
+import lxml.etree as etree
 from requests import Response
 
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 import os
+from pathlib import Path
 import shutil
 import sys
-from pathlib import Path
 
 if sys.version_info[:2] < (3, 9):
     raise RuntimeError("This app only supports Python 3.9 and later.")

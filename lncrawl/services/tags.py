@@ -1,7 +1,6 @@
 from typing import Any, List, Optional
 
-from sqlmodel import and_, asc, col, func, select
-from sqlmodel import insert as sa_insert
+from sqlmodel import and_, asc, col, func, insert as sa_insert, select
 
 from ..context import ctx
 from ..dao import Tag

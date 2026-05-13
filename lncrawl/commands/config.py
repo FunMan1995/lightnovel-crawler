@@ -2,10 +2,10 @@ import json
 from typing import Optional
 
 import questionary
-import typer
-import yaml
 from rich import print
 from rich.console import Console
+import typer
+import yaml
 
 from ..context import ctx
 

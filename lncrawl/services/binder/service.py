@@ -1,6 +1,6 @@
+from functools import cached_property
 import logging
 import shutil
-from functools import cached_property
 from threading import Event
 from typing import Callable, Dict, Optional, Set
 

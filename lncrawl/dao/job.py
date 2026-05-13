@@ -1,7 +1,7 @@
 from typing import Optional
 
-import sqlmodel as sa
 from pydantic import computed_field
+import sqlmodel as sa
 
 from ._base import BaseTable
 from .enums import JobPriority, JobStatus, JobType

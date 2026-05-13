@@ -1,7 +1,7 @@
 from typing import Optional
 
-import sqlmodel as sa
 from pydantic import computed_field
+import sqlmodel as sa
 
 from ..context import ctx
 from ._base import BaseTable

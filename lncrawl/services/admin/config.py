@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+from functools import cached_property, lru_cache
 import inspect
 import re
 import sys
-from functools import cached_property, lru_cache
 from typing import (
     Annotated,
     Any,

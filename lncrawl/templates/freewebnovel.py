@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-import unicodedata
 from typing import Any, Iterable, List
+import unicodedata
 
 from lncrawl.core import BrowserTemplate, Chapter, PageSoup
 

@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-import humanize
 from dateutil.parser import parse
+import humanize
 
 
 def utc_now():

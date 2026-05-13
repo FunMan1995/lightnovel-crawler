@@ -3,17 +3,17 @@
 Build lightnovel-crawler source index to use for update checking.
 """
 
+from datetime import datetime, timezone
 import gzip
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
-import time
-from datetime import datetime, timezone
-from pathlib import Path
 from threading import Event
+import time
 from typing import Any, Dict, List
 from urllib.parse import quote_plus, unquote_plus
 

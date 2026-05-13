@@ -1,6 +1,6 @@
-import typer
 from alembic import command
 from rich import print
+import typer
 
 from ...context import ctx
 

@@ -1,15 +1,15 @@
-import logging
 from functools import cached_property
+import logging
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 from urllib.parse import urlparse
 
-import sqlmodel as sa
 from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
+import sqlmodel as sa
 
 from ..context import ctx
 from ..dao import SQLModel

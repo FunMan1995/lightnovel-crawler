@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import logging
 from datetime import datetime
 from hashlib import md5
+import logging
 from urllib.parse import urlparse
 
 from lncrawl.core import Chapter, LegacyCrawler, Volume

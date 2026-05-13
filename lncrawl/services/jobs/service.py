@@ -1,7 +1,7 @@
 from typing import Any, Iterable, List, Optional, TypeVar
 
-import sqlmodel as sq
 from sqlalchemy.orm import aliased
+import sqlmodel as sq
 from sqlmodel import Session
 
 from ...context import ctx

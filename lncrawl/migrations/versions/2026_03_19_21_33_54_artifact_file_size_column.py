@@ -7,9 +7,9 @@ Create Date: 2026-03-19 21:33:54.189838
 
 from typing import Sequence, Tuple, Union
 
-import sqlmodel as sa
 from alembic import op
 from box import Box
+import sqlmodel as sa
 
 from lncrawl.context import ctx
 from lncrawl.core import TaskManager

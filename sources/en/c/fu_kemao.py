@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 from base64 import b64decode
+import logging
 from urllib.parse import quote_plus
 
 from lncrawl.core import Chapter, LegacyCrawler, Volume

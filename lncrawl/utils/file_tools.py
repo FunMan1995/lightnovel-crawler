@@ -1,10 +1,10 @@
+from contextlib import contextmanager
 import logging
 import os
+from pathlib import Path
 import shlex
 import subprocess
 import tempfile
-from contextlib import contextmanager
-from pathlib import Path
 from typing import Iterator, Union
 
 from slugify import slugify

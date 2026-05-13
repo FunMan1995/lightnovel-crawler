@@ -1,5 +1,5 @@
-import time
 from concurrent.futures import Future
+import time
 from typing import Iterable, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 

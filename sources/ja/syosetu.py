@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 from concurrent.futures import ThreadPoolExecutor
+import logging
 from urllib.parse import quote_plus
 
 from bs4 import element

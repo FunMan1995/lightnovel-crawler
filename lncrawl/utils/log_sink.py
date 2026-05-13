@@ -3,8 +3,8 @@ import io
 import logging
 import threading
 import types
-import weakref
 from typing import Any, Callable, Set, Union
+import weakref
 
 _Listener = Callable[[str], Any]
 _ListenerRef = weakref.ref[_Listener]

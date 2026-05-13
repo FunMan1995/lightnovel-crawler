@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
-import sqlmodel as sa
 from sqlalchemy import event
+import sqlmodel as sa
 
 from ..utils.text_tools import generate_uuid
 from ..utils.time_utils import current_timestamp
