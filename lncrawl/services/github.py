@@ -4,7 +4,7 @@ import logging
 from ..context import ctx
 from ..dao import User
 from ..exceptions import ServerErrors
-from ..server.models import CreatePRRequest, CreatePRResponse
+from ..server.models import PRCreateRequest, PRResponse
 from ..utils.github import GithubClient
 
 logger = logging.getLogger(__name__)
@@ -19,24 +19,30 @@ class GitHubService:
             raise ServerErrors.no_such_file.with_extra(source.file_path)
         return file.read_text(encoding="utf-8")
 
+    def fetch_source_pr(self, domain: str) -> PRResponse:
+        branch = f"fix/{domain}"
+        with GithubClient() as gh:
+            pr = gh.find_open_pr(branch)
+            if not pr:
+                raise ServerErrors.not_found.with_extra("No PR found for the domain")
+
+            return PRResponse(
+                url=pr["html_url"],
+                number=pr["number"],
+                branch=pr["head"]["ref"],
+            )
+
     def create_source_pr(
         self,
         user: User,
         domain: str,
-        req: CreatePRRequest,
-    ) -> CreatePRResponse:
+        req: PRCreateRequest,
+    ) -> PRResponse:
         source = ctx.sources.get_source(domain)
 
         branch = f"fix/{domain}"
-        title = req.title.strip().capitalize() or f"Update source: {domain}"
-
-        user_link = f"{ctx.config.server.base_url}/admin/user/{user.id}"
-        page_link = f"{ctx.config.server.base_url}/source/{domain}"
-        body = req.body or (
-            f"> Submitted by [{user.name}]({user_link}) <br>\n"
-            f"> From: {page_link} <br>\n"
-            f"> File: {source.github_url}\n"
-        )
+        title = req.title.strip().capitalize()
+        body = req.body
 
         user_hash = hashlib.shake_256(user.email.encode()).hexdigest(6)
         labels = ["source-update", f"user:{user_hash}"]
@@ -66,7 +72,7 @@ class GitHubService:
 
             gh.add_labels(pr["number"], labels)
 
-            return CreatePRResponse(
+            return PRResponse(
                 url=pr["html_url"],
                 number=pr["number"],
                 branch=pr["head"]["ref"],

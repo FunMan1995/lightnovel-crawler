@@ -22,8 +22,8 @@ from .sources import (
     CrawlerIndex,
     CrawlerInfo,
     CrawlerTestRequest,
-    CreatePRRequest,
-    CreatePRResponse,
+    PRCreateRequest,
+    PRResponse,
     SourceItem,
 )
 from .user import (
@@ -54,8 +54,8 @@ __all__ = [
     "CrawlerIndex",
     "CrawlerTestRequest",
     "SourceItem",
-    "CreatePRRequest",
-    "CreatePRResponse",
+    "PRCreateRequest",
+    "PRResponse",
     # crawler
     "LoginData",
     # job

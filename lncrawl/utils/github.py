@@ -48,11 +48,10 @@ class GithubClient:
         return f"https://github.com/{_GITHUB_REPO}/edit/{branch}/{file_path.strip('/')}"
 
     def get_sha(self, branch: str):
-        return (
-            self._gh.get(f"/repos/{_GITHUB_REPO}/git/ref/heads/{branch}")
-            .raise_for_status()
-            .json()["object"]["sha"]
-        )
+        resp = self._gh.get(f"/repos/{_GITHUB_REPO}/git/ref/heads/{branch}")
+        resp.raise_for_status()
+        data = resp.json()
+        return data["object"]["sha"]
 
     def ensure_branch(self, branch: str) -> None:
         head_sha = self.get_sha(_DEFAULT_BRANCH)
@@ -63,18 +62,16 @@ class GithubClient:
         if resp.status_code == 422:  # branch exists (stale closed PR)
             self._gh.patch(
                 f"/repos/{_GITHUB_REPO}/git/refs/heads/{branch}",
-                json={"sha": head_sha, "force": True},  # foce push
+                json={"sha": head_sha, "force": True},  # force push
             ).raise_for_status()
         else:
             resp.raise_for_status()
 
     def get_remote_file(self, file_path: str, branch: str = _DEFAULT_BRANCH):
         params = {"ref": branch} if branch else {}
-        data = (
-            self._gh.get(f"/repos/{_GITHUB_REPO}/contents/{file_path}", params=params)
-            .raise_for_status()
-            .json()
-        )
+        resp = self._gh.get(f"/repos/{_GITHUB_REPO}/contents/{file_path}", params=params)
+        resp.raise_for_status()
+        data = resp.json()
         return data["sha"], data.get("content", "").replace("\n", "")
 
     def commit_file(
@@ -133,33 +130,17 @@ class GithubClient:
         ).raise_for_status()
 
     def create_pr(self, title: str, body: str, branch: str, base: str = _DEFAULT_BRANCH) -> dict:
-        return (
-            self._gh.post(
-                f"/repos/{_GITHUB_REPO}/pulls",
-                json={
-                    "title": title,
-                    "body": body,
-                    "head": branch,
-                    "base": base,
-                },
-            )
-            .raise_for_status()
-            .json()
+        resp = self._gh.post(
+            f"/repos/{_GITHUB_REPO}/pulls",
+            json={
+                "title": title,
+                "body": body,
+                "head": branch,
+                "base": base,
+            },
         )
-
-    def upsert_pr(
-        self,
-        title: str,
-        body: str,
-        branch: str,
-        existing_pr: Optional[dict],
-    ) -> tuple:
-        if existing_pr:
-            pr = existing_pr
-            self.update_pr(pr["number"], title, body)
-        else:
-            pr = self.create_pr(title, body, branch)
-        return pr["number"], pr["html_url"]
+        resp.raise_for_status()
+        return resp.json()
 
     def add_labels(self, issue_number: str, labels: List[str]):
         self._gh.post(

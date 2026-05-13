@@ -8,8 +8,8 @@ from ...dao import User
 from ...exceptions import ServerErrors
 from ..models import (
     CrawlerTestRequest,
-    CreatePRRequest,
-    CreatePRResponse,
+    PRCreateRequest,
+    PRResponse,
     SourceItem,
 )
 from ..security import ensure_user
@@ -59,15 +59,23 @@ def get_source_code(domain: str) -> str:
     return ctx.github.get_source_code(domain)
 
 
+@router.get(
+    "/{domain}/pr",
+    summary="Create a GitHub PR with an edited source crawler",
+)
+def get_source_pr(domain: str = Path()) -> PRResponse:
+    return ctx.github.fetch_source_pr(domain)
+
+
 @router.post(
     "/{domain}/pr",
     summary="Create a GitHub PR with an edited source crawler",
 )
 def create_source_pr(
     domain: str = Path(),
-    req: CreatePRRequest = Body(...),
+    req: PRCreateRequest = Body(...),
     user: User = Security(ensure_user),
-) -> CreatePRResponse:
+) -> PRResponse:
     return ctx.github.create_source_pr(user, domain, req)
 
 

@@ -72,13 +72,13 @@ class CrawlerTestRequest(BaseModel):
     content: str = Field(..., description="Crawler source code to test")
 
 
-class CreatePRRequest(BaseModel):
+class PRCreateRequest(BaseModel):
     title: str = Field(default="", description="Commit message and PR title")
     body: str = Field(default="", description="PR description body")
     content: str = Field(..., description="Updated file content")
 
 
-class CreatePRResponse(BaseModel):
+class PRResponse(BaseModel):
     url: str = Field(description="PR URL")
     number: int = Field(description="PR number")
     branch: str = Field(description="PR branch name")
