@@ -63,19 +63,15 @@ class Sources:
     def load(self, sync_remote=True):
         self._signal = Event()
         self._store = FTSStore()
-        self._taskman = TaskManager(10)
+        self._taskman = TaskManager(1)
 
         # load offline sources first
-        self.load_index(load_offline_source(sync_remote))
-
-        # dynamically import all crawlers
         self._taskman.submit_task(
-            self.load_crawlers,
-            *ctx.config.crawler.local_sources.glob("**/*.py"),
-            *ctx.config.crawler.user_sources.glob("**/*.py"),
+            self.load_index,
+            load_offline_source(sync_remote),
         )
 
-        # run background task get online update
+        # check online sources update
         if sync_remote:
             self._taskman.submit_task(self.update)
 
@@ -94,6 +90,16 @@ class Sources:
             host = extract_host(url)
             self.rejected[host] = reason
 
+        # dynamically import all crawlers
+        self.info.clear()
+        self.crawlers.clear()
+        self.sources.clear()
+        self._taskman.submit_task(
+            self.load_crawlers,
+            *ctx.config.crawler.local_sources.glob("**/*.py"),
+            *ctx.config.crawler.user_sources.glob("**/*.py"),
+        )
+    
     def load_crawlers(self, *files: Path):
         for crawler in batch_import(*files):
             self.add_crawler(crawler)
@@ -145,26 +151,21 @@ class Sources:
         self.load_index(online_index)
 
         # download latest source files
-        futures = []
         for id, source in online_index.crawlers.items():
             current = self._index.crawlers.get(id)
             if current and current.version >= source.version:
                 continue
+            self.load_online_crawler(source)
+        logger.info("Source synced.")
+
+    def load_online_crawler(self, source):
+        try:
             user_sources = ctx.config.crawler.user_sources.parent
             dst_file = (user_sources / source.file_path).resolve()
-            f = self._taskman.submit_task(ctx.http.download, source.github_url, dst_file)
-            futures.append(f)
-
-        # wait for completion
-        for dst_file in self._taskman.resolve(
-            futures,
-            desc="Downloading",
-            unit="source",
-            signal=self._signal,
-        ):
-            if dst_file:
-                self.load_crawlers(dst_file)
-        logger.info("Source synced.")
+            ctx.http.download(source.github_url, dst_file)
+            self.load_crawlers(dst_file)
+        except Exception as e:
+            logger.warning(f"Failed to download source: {source.github_url}", exc_info=True)
 
     def list(
         self,
