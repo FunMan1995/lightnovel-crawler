@@ -134,8 +134,16 @@ extend-exclude = [
   "lncrawl-web",
   "lncrawl/cloudscraper",
 ]
+indent-width = 4
 line-length = 100
 target-version = "py39"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
+indent-style = "space"
+line-ending = "lf"
+quote-style = "double"
 
 [tool.ruff.lint]
 extend-select = [
@@ -157,15 +165,20 @@ combine-as-imports = true
 force-sort-within-sections = true
 known-first-party = ["lncrawl"]
 
-[tool.ruff.format]
-quote-style = "double"
-
 [tool.pylsp.signature]
 formatter = "ruff"
 
 [tool.pylsp.plugins.ruff]
+docstring-code-format = true
+docstring-code-line-length = 80
 enabled = true
+format = ["I", "E", "W", "F"]
 formatEnabled = true
+ignore = ["E203", "E265", "E501"]
+indent-style = "space"
+line-ending = "lf"
+line-length = 100
+quote-style = "double"
 
 [tool.pylsp.plugins.pyflakes]
 enabled = false

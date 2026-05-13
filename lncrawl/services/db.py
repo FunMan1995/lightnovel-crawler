@@ -69,9 +69,7 @@ class DB:
 
          Single tuple::
 
-             conn.exec_driver_sql(
-                 "INSERT INTO table (id, value) VALUES (?, ?)", (1, "v1")
-             )
+             conn.exec_driver_sql("INSERT INTO table (id, value) VALUES (?, ?)", (1, "v1"))
 
         """
         with self.engine.begin() as conn:

@@ -68,6 +68,6 @@ class GitHubService:
 
             return CreatePRResponse(
                 url=pr["html_url"],
-                sha=pr["head"]["sha"],
+                number=pr["number"],
                 branch=pr["head"]["ref"],
             )

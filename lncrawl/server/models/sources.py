@@ -80,5 +80,5 @@ class CreatePRRequest(BaseModel):
 
 class CreatePRResponse(BaseModel):
     url: str = Field(description="PR URL")
-    sha: str = Field(description="PR commit hash")
+    number: int = Field(description="PR number")
     branch: str = Field(description="PR branch name")
