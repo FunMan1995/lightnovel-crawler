@@ -1,5 +1,6 @@
 import hashlib
 import logging
+from pathlib import Path
 
 from ..context import ctx
 from ..dao import User
@@ -13,11 +14,13 @@ logger = logging.getLogger(__name__)
 class GitHubService:
     def get_source_code(self, domain: str) -> str:
         ctx.sources.update()
-        source = ctx.sources.get_source(domain)
-        file_path = source.file_path
-        file = ctx.config.crawler.local_sources.parent / file_path
+        crawler = ctx.sources.get_crawler(domain)
+        crawler_file = getattr(crawler, "__file__", None)
+        if not crawler_file:
+            raise ServerErrors.no_such_file.with_extra("crawler.__file__")
+        file = Path(crawler_file)
         if not file.exists():
-            raise ServerErrors.no_such_file.with_extra(source.file_path)
+            raise ServerErrors.no_such_file.with_extra(crawler_file)
         return file.read_text(encoding="utf-8")
 
     def fetch_source_pr(self, domain: str) -> PRResponse:
