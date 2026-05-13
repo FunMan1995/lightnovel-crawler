@@ -724,17 +724,3 @@ class PythonLanguageServerConfig(_Section):
     @port.setter
     def port(self, v: int) -> None:
         self._set("port", v)
-
-    @property
-    def mode(self) -> Literal["ws", "tcp"]:
-        """LSP Transport Mode.
-
-        How the language server accepts connections. Accepted values: `ws`, `tcp`
-        """
-        return self._get("mode", "ws")
-
-    @mode.setter
-    def mode(self, v: str) -> None:
-        if v not in ("tcp", "ws"):
-            raise ValueError(f"mode must be 'tcp' or 'ws', got {v!r}")
-        self._set("mode", v)

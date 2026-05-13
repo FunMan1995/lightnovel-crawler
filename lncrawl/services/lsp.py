@@ -22,7 +22,6 @@ class PythonLanguageServer:
         self._signal = Event()
         self._lock = Lock()
         self._process: Optional[subprocess.Popen[str]] = None
-        self.mode = ctx.config.lsp.mode
         self.host = ctx.config.lsp.host
         self.port = ctx.config.lsp.port
 
@@ -77,10 +76,7 @@ class PythonLanguageServer:
         )
         self._start_pipe_reader(self._process.stdout, logging.DEBUG)
         self._start_pipe_reader(self._process.stderr, logging.WARNING)
-        logger.info(
-            f"LSP server started (pid={self._process.pid}) "
-            + f"on {self.host}:{self.port} [{self.mode}]"
-        )
+        logger.info(f"LSP server started (pid={self._process.pid}) on {self.host}:{self.port}")
 
     def stop(self) -> None:
         if not self._process or not self.is_running:
@@ -106,12 +102,16 @@ class PythonLanguageServer:
     def _build_cmd(self) -> List[str]:
         if self.port == 0:
             self.port = free_port(self.host, self.port)
-        cmd = [sys.executable, "-m", "pylsp"]
-        if self.mode == "ws":
-            cmd += ["--ws", "--host", self.host, "--port", str(self.port)]
-        else:
-            cmd += ["--tcp", "--host", self.host, "--port", str(self.port)]
-        return cmd
+        return [
+            sys.executable,
+            "-m",
+            "pylsp",
+            "--tcp",
+            "--host",
+            self.host,
+            "--port",
+            str(self.port),
+        ]
 
     def _build_env(self) -> dict:
         env = os.environ.copy()
