@@ -5,10 +5,28 @@ import time
 from fastapi import APIRouter, Query, WebSocket, status
 
 from ...context import ctx
+from ...services.lsp import _PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+_VIRTUAL_ROOT = b"file:///workspace"
+_PROJECT_URI = _PROJECT_ROOT.as_uri().encode()
+
+
+def _translate_to_real(body: bytes) -> bytes:
+    """Replace virtual workspace URIs with real filesystem paths for pylsp."""
+    if _VIRTUAL_ROOT not in body:
+        return body
+    return body.replace(_VIRTUAL_ROOT, _PROJECT_URI)
+
+
+def _translate_to_virtual(body: bytes) -> bytes:
+    """Replace real filesystem URIs with virtual workspace URIs for the client."""
+    if _PROJECT_URI not in body:
+        return body
+    return body.replace(_PROJECT_URI, _VIRTUAL_ROOT)
 
 
 @router.websocket("/lsp")
@@ -62,7 +80,7 @@ async def _relay_tcp(client: WebSocket, host: str, port: int) -> None:
     async def _forward_to_upstream():
         try:
             while True:
-                body = (await client.receive_text()).encode()
+                body = _translate_to_real((await client.receive_text()).encode())
                 writer.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
                 await writer.drain()
         except Exception:
@@ -81,7 +99,7 @@ async def _relay_tcp(client: WebSocket, host: str, port: int) -> None:
                 length = int(headers.get("content-length", 0))
                 if not length:
                     break
-                body = await reader.readexactly(length)
+                body = _translate_to_virtual(await reader.readexactly(length))
                 await client.send_text(body.decode())
         except Exception:
             pass
