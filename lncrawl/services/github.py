@@ -1,17 +1,32 @@
+import gzip
 import hashlib
+import io
 import logging
 from pathlib import Path
 
 from ..context import ctx
 from ..dao import User
 from ..exceptions import ServerErrors
-from ..server.models import PRCreateRequest, PRResponse
+from ..server.models import CrawlerIndex, PRCreateRequest, PRResponse
 from ..utils.github import GithubClient
 
 logger = logging.getLogger(__name__)
 
 
 class GitHubService:
+    def fetch_online_source(self) -> CrawlerIndex:
+        index_url = GithubClient.get_remote_raw_link("sources/_index.zip")
+        compressed = ctx.http.get(index_url)
+        with gzip.GzipFile(fileobj=io.BytesIO(compressed), mode="rb") as fp:
+            json_str = fp.read().decode()
+            return CrawlerIndex.model_validate_json(json_str)
+
+    def download_online_source(self, file_path: str) -> None:
+        user_sources = ctx.config.crawler.user_sources.parent
+        dst_file = user_sources / file_path
+        raw_url = GithubClient.get_remote_raw_link(file_path)
+        ctx.http.download(raw_url, dst_file)
+
     def get_source_code(self, domain: str) -> str:
         ctx.sources.update()
         crawler = ctx.sources.get_crawler(domain)

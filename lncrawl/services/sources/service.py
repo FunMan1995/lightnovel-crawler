@@ -17,7 +17,6 @@ from .helper import (
     batch_import,
     create_crawler_info,
     create_source_item,
-    fetch_online_source,
     load_offline_source,
     save_source,
 )
@@ -66,10 +65,7 @@ class Sources:
         self._taskman = TaskManager(1)
 
         # load offline sources first
-        self._taskman.submit_task(
-            self.load_index,
-            load_offline_source(sync_remote),
-        )
+        self.load_index(load_offline_source(sync_remote))
 
         # check online sources update
         if sync_remote:
@@ -137,35 +133,30 @@ class Sources:
 
     def update(self) -> None:
         assert self._index
-        logger.info("Sync online sources")
-        online_index = fetch_online_source()
+        logger.info(f"Sync online sources (current={self._index.v})")
+        online_index = ctx.github.fetch_online_source()
         if online_index.v <= self._index.v:
             logger.info("No latest updates found")
             return
 
         # save the latest index
         user_file = ctx.config.crawler.user_index_file
-        save_source(user_file, self._index)
-
-        # load the online index
-        self.load_index(online_index)
+        save_source(user_file, online_index)
 
         # download latest source files
         for id, source in online_index.crawlers.items():
             current = self._index.crawlers.get(id)
             if current and current.version >= source.version:
                 continue
-            self.load_online_crawler(source)
-        logger.info("Source synced.")
+            try:
+                ctx.github.download_online_source(source.file_path)
+                logger.debug(f"Downloaded source: {source.file_path}")
+            except Exception:
+                logger.warning(f"Failed to download source: {source.file_path}", exc_info=True)
 
-    def load_online_crawler(self, source):
-        try:
-            user_sources = ctx.config.crawler.user_sources.parent
-            dst_file = (user_sources / source.file_path).resolve()
-            ctx.http.download(source.github_url, dst_file)
-            self.load_crawlers(dst_file)
-        except Exception:
-            logger.warning(f"Failed to download source: {source.github_url}", exc_info=True)
+        # load the online index
+        self.load_index(online_index)
+        logger.info("Source synced.")
 
     def list(
         self,
