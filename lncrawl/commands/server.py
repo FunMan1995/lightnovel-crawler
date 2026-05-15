@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import typer
 from typing_extensions import Annotated
-import uvicorn
 
 from ..context import ctx
 
@@ -14,6 +15,8 @@ def server(
     watch: Annotated[bool, typer.Option("-w", "--watch", help="Run server in watch mode")] = False,
     workers: Annotated[int, typer.Option("-n", "--worker", help="Number of workers to run")] = 1,
 ):
+    import uvicorn
+
     if watch:
         uvicorn.run(
             "lncrawl.server.app:app",

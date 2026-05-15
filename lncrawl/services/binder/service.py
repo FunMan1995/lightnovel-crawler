@@ -81,7 +81,7 @@ class BinderService:
             file_name=file_name,
         )
 
-        working_dir = ctx.config.app.output_path / "tmp" / artifact.id
+        working_dir = ctx.config.app.app_dir / "tmp" / artifact.id
         try:
             shutil.rmtree(working_dir, True)
             working_dir.mkdir(parents=True)

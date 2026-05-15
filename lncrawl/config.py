@@ -254,7 +254,7 @@ class AppConfig(_Section):
         return (ROOT_DIR / "VERSION").read_text(encoding="utf8").strip()
 
     @cached_property
-    def output_path(self) -> Path:
+    def app_dir(self) -> Path:
         return APP_DIR
 
     @property

@@ -8,6 +8,7 @@ from threading import Event, Lock, Thread
 from typing import IO, List, Optional
 
 from ..context import ctx
+from ..utils.platforms import Platform
 from ..utils.sockets import free_port
 
 # Canonical project root: one level above the `lncrawl` package directory.
@@ -102,26 +103,50 @@ class PythonLanguageServer:
     def _build_cmd(self) -> List[str]:
         if self.port == 0:
             self.port = free_port(self.host, self.port)
-        return [
-            sys.executable,
-            "-m",
-            "pylsp",
+
+        if Platform.frozen:
+            # Re-invoke this exe with LNCRAWL_PYLSP=1 so the bundled pylsp is
+            # used. Spawning the system pylsp.exe would inherit _MEIPASS in PATH
+            # and load conflicting DLLs/pyd files from the extraction directory.
+            exe = [sys.executable]
+        else:
+            exe = [sys.executable, "-m", "pylsp"]
+
+        args = [
             "--tcp",
             "--host",
             self.host,
             "--port",
             str(self.port),
         ]
+        return exe + args
 
     def _build_env(self) -> dict:
         env = os.environ.copy()
-        # Collect workspace roots so jedi can resolve lncrawl + sources imports.
-        extra: List[str] = [str(_PROJECT_ROOT)]
+        extra: List[str] = []
+
+        if Platform.frozen:
+            # Tell the child exe to run as pylsp instead of the full app.
+            env["LNCRAWL_PYLSP"] = "1"
+            # Pass the parent's extraction dir to the child so it skips
+            # re-extraction and starts immediately. _MEIPASS2 is PyInstaller's
+            # official bootloader mechanism for one-file child processes.
+            meipass = getattr(sys, "_MEIPASS", "")
+            if meipass:
+                env["_MEIPASS2"] = meipass
+            # _PROJECT_ROOT resolves to _MEIPASS in a frozen build; skip it.
+        else:
+            # Collect workspace roots so jedi can resolve lncrawl + sources imports.
+            extra.append(str(_PROJECT_ROOT))
+
         for path in [ctx.config.crawler.user_sources]:
             if path.exists():
                 extra.append(str(path))
-        existing = env.get("PYTHONPATH", "")
-        env["PYTHONPATH"] = os.pathsep.join([*extra, existing] if existing else extra)
+
+        if extra:
+            existing = env.get("PYTHONPATH", "")
+            env["PYTHONPATH"] = os.pathsep.join([*extra, existing] if existing else extra)
+
         return env
 
     def _start_pipe_reader(self, pipe: Optional[IO[str]], level: int):

@@ -32,12 +32,13 @@ BUILD_DIR = SPEC_DIR / "build"
 def build_command():
     command = [
         str(ROOT / "lncrawl" / "__main__.py"),
-        "--noconsole",
+        # "--noconsole",
         "--onefile",
         "--clean",
         "--noconfirm",
         "--name=lncrawl",
         f"--icon={ROOT / 'res' / 'lncrawl.ico'}",
+        "--collect-all=pylsp",
         f"--distpath={DIST_DIR}",
         f"--specpath={SPEC_DIR}",
         f"--workpath={BUILD_DIR}",

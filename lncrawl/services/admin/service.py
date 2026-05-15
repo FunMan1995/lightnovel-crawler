@@ -7,8 +7,6 @@ from .config import list_config_sections, update_config
 
 class AdminService:
     def soft_restart(self):
-        ctx.lsp.stop()
-        ctx.scheduler.stop()
         ctx.destroy()
         ctx.setup()
         ctx.lsp.start()

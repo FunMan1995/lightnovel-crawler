@@ -4,8 +4,8 @@ from pydantic import computed_field
 import sqlmodel as sa
 
 from ..context import ctx
+from ..enums import OutputFormat
 from ._base import BaseTable
-from .enums import OutputFormat
 
 
 class Artifact(BaseTable, table=True):

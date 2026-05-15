@@ -3,11 +3,11 @@ from typing import List, Type
 from sqlalchemy import Table
 from sqlmodel import SQLModel
 
+from ..enums import *  # noqa: F401,F403
 from .announcement import Announcement
 from .artifact import Artifact
 from .chapter import Chapter
 from .chapter_image import ChapterImage
-from .enums import *  # noqa: F401,F403
 from .feedback import Feedback
 from .job import Job
 from .library import Library, LibraryNovel

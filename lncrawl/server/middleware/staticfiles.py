@@ -42,7 +42,7 @@ class StaticFilesGuard(BaseHTTPMiddleware):
 
 class CustomStaticFiles(StaticFiles):
     def __init__(self) -> None:
-        super().__init__(directory=ctx.config.app.output_path)
+        super().__init__(directory=ctx.config.app.app_dir)
 
     async def get_response(self, path, scope):
         resp = await super().get_response(path, scope)

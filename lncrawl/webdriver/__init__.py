@@ -22,7 +22,7 @@ def create_new(
 ) -> WebDriver:
     """Create a new webdriver instance"""
     if not user_data_dir:
-        user_data_dir = str(ctx.config.app.output_path / "webdriver")
+        user_data_dir = str(ctx.config.app.app_dir / "webdriver")
         os.makedirs(user_data_dir, exist_ok=True)
     if ctx.config.crawler.selenium_grid:
         from .remote import create_remote

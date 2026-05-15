@@ -172,11 +172,16 @@ class __AppContext__:
 
     def destroy(self):
         self.__ready = False
-        self.scheduler.stop()
-        self.sources.close()
-        self.mail.close()
-        self.db.close()
-        self.lsp.stop()
+        if "scheduler" in self.__dict__:
+            self.scheduler.stop()
+        if "sources" in self.__dict__:
+            self.sources.close()
+        if "mail" in self.__dict__:
+            self.mail.close()
+        if "db" in self.__dict__:
+            self.db.close()
+        if "lsp" in self.__dict__:
+            self.lsp.stop()
 
     def setup(
         self,

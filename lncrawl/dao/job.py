@@ -3,8 +3,8 @@ from typing import Optional
 from pydantic import computed_field
 import sqlmodel as sa
 
+from ..enums import JobPriority, JobStatus, JobType
 from ._base import BaseTable
-from .enums import JobPriority, JobStatus, JobType
 
 
 class Job(BaseTable, table=True):

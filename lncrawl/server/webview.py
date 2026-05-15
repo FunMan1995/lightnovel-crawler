@@ -1,31 +1,21 @@
 import logging
+import socket
 import threading
+import time
 
 import webview
 
-from ..commands.server import server
-from ..config import APP_DIR
+from ..assets.htmls import loading_html
 from ..context import ctx
-from ..dao.enums import UserRole
+from ..enums import UserRole
 from ..utils.sockets import free_port
 
 logger = logging.getLogger(__name__)
 
 
-def start() -> None:
-    host = "localhost"
-    port = free_port(host, 31580)
+def _wait_for_server(host: str, port: int, timeout: float = 60) -> bool:
+    from ..commands.server import server
 
-    # Setup context
-    ctx.setup(reset_db_on_failure=True)
-    ctx.logger.progress_bar = False
-    token = ctx.users.generate_token(
-        user=ctx.users.get_admin(),
-        expiry_minutes=100 * 365 * 24 * 60,  # 100 years
-        scopes=[UserRole.LOCAL],
-    )
-
-    # Start server in a separate thread
     t = threading.Thread(
         target=server,
         kwargs={
@@ -37,19 +27,42 @@ def start() -> None:
     )
     t.start()
 
-    # Create webview window
-    webview.create_window(
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.5):
+                return True
+        except OSError:
+            time.sleep(0.15)
+    return False
+
+
+def start() -> None:
+    window = webview.create_window(
         "Lightnovel Crawler",
-        f"http://{host}:{port}/?authToken={token}",
-        # maximized=True,
+        html=loading_html(),
         width=1280,
         height=800,
     )
 
-    # Persist WebView2/cookies under APP_DIR
-    storage_path = str(APP_DIR / "webview")
+    def _boot():
+        ctx.setup(reset_db_on_failure=True)
+        ctx.logger.progress_bar = False
+        token = ctx.users.generate_token(
+            user=ctx.users.get_admin(),
+            expiry_minutes=100 * 365 * 24 * 60,  # 100 years
+            scopes=[UserRole.LOCAL],
+        )
+
+        host = "localhost"
+        port = free_port(host, 31580)
+        if window and _wait_for_server(host, port):
+            window.load_url(f"http://{host}:{port}/?authToken={token}")
+
+    storage_path = str(ctx.config.app.app_dir / "webview")
     try:
         webview.start(
+            func=_boot,
             private_mode=False,
             storage_path=storage_path,
         )
