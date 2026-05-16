@@ -116,7 +116,6 @@ def prompt_select_volumes(volumes: List[Volume], attempt=0) -> List[str]:
             questionary.Choice(
                 value=volume.id,
                 title=volume.title,
-                shortcut_key=str(volume.serial),
             )
             for volume in volumes
         ],
