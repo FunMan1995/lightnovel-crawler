@@ -109,14 +109,14 @@ upgrade: setup
 # =============================================================================
 
 lint:
-	$(UV) run ruff check
-	$(UV) run ruff format --check
-	$(UV) run pyright lncrawl
-# 	$(UV) run pyright sources
+	@$(UV) run pyright lncrawl
+	@$(UV) run ruff format --diff --check
+	@$(UV) run ruff check
+# 	@$(UV) run pyright sources
 
 lint-fix:
-	$(UV) run ruff check --fix
-	$(UV) run ruff format
+	@$(UV) run ruff check --fix
+	@$(UV) run ruff format
 
 start:
 	$(UV) run python -m lncrawl -ll server

@@ -56,6 +56,7 @@ def get_source(domain: str) -> SourceItem:
     summary="Get source crawler file content",
 )
 def get_source_code(domain: str) -> str:
+    ctx.sources.update()
     return ctx.github.get_source_code(domain)
 
 
@@ -88,6 +89,7 @@ async def test_source(
     req: CrawlerTestRequest = Body(...),
     user: User = Security(ensure_user),
 ) -> StreamingResponse:
+    # ctx.sources.update()
     code = ctx.github.get_source_code(domain)
     if code != req.content and not user.is_admin:
         return StreamingResponse(

@@ -59,9 +59,9 @@ jobs:
 
       - name: 🧹 Lint Code
         run: |
-          uv run ruff check
-          uv run ruff format --check
           uv run pyright lncrawl
+          uv run ruff format --diff--check
+          uv run ruff check
           git diff --name-only -- "*.py" | xargs -r pyright
 
       - name: 🏗️ Build Wheel

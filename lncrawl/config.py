@@ -724,3 +724,31 @@ class PythonLanguageServerConfig(_Section):
     @port.setter
     def port(self, v: int) -> None:
         self._set("port", v)
+
+    @property
+    def max_sessions(self) -> int:
+        """LSP Max Simultaneous Sessions.
+
+        Maximum number of pylsp processes that may run at the same time.
+        Each WebSocket connection spawns one process, so this is effectively
+        the concurrent-user cap for the language server. Default is `3`.
+        """
+        return self._get("max_sessions", 3)
+
+    @max_sessions.setter
+    def max_sessions(self, v: int) -> None:
+        self._set("max_sessions", v)
+
+    @property
+    def idle_timeout(self) -> int:
+        """LSP Idle Timeout (seconds).
+
+        Seconds of inactivity after which an LSP session is automatically
+        closed. Activity is defined as any message in either direction.
+        Default is `1800` (30 minutes).
+        """
+        return self._get("idle_timeout", 1800)
+
+    @idle_timeout.setter
+    def idle_timeout(self, v: int) -> None:
+        self._set("idle_timeout", v)

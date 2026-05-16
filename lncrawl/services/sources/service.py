@@ -2,14 +2,15 @@ import asyncio
 import logging
 from pathlib import Path
 import threading
-from threading import Event
+from threading import Event, Thread
 import traceback
 from typing import Dict, List, Optional, Type
 
 from ...context import ctx
-from ...core import Crawler, TaskManager
+from ...core import Crawler
 from ...exceptions import ServerErrors
 from ...server.models import CrawlerIndex, CrawlerInfo, SourceItem
+from ...utils.event_lock import EventLock
 from ...utils.fts_store import FTSStore
 from ...utils.text_tools import normalize
 from ...utils.url_tools import extract_host, normalize_url
@@ -31,7 +32,7 @@ class Sources:
         self._signal: Event
         self._store: FTSStore
         self._index: CrawlerIndex
-        self._taskman: TaskManager
+        self._sync_lock = EventLock()
         self.rejected: Dict[str, str] = {}  # Map of host -> rejection reason
         self.crawlers: Dict[str, Type[Crawler]] = {}  # Map of host -> crawler
         self.info: Dict[str, CrawlerInfo] = {}  # Map of host -> crawler-info
@@ -48,34 +49,59 @@ class Sources:
         return self.rejected.get(host)
 
     def close(self):
+        self._sync_lock.abort()
         if hasattr(self, "_signal"):
             self._signal.set()
         if hasattr(self, "_store"):
             self._store.close()
-        if hasattr(self, "_taskman"):
-            self._taskman.close()
         if hasattr(self, "_index"):
             del self._index
         self.rejected.clear()
         self.sources.clear()
 
-    def load(self, sync_remote=True):
-        self._signal = Event()
-        self._store = FTSStore()
-        self._taskman = TaskManager(1)
-
-        # load offline sources first
-        self.load_index(load_offline_source(sync_remote))
-
-        # check online sources update
-        if sync_remote:
-            self._taskman.submit_task(self.update)
-
     def ensure_load(self):
-        self._taskman.as_completed(
-            disable_bar=True,
-            signal=self._signal,
-        )
+        with self._sync_lock:
+            pass
+
+    def load(self, sync_remote=True):
+        with self._sync_lock:
+            self._signal = Event()
+            self._store = FTSStore()
+
+            # load offline sources first
+            self.load_index(load_offline_source(sync_remote))
+
+            # check online sources update
+            if sync_remote:
+                Thread(target=self.update).start()
+
+    def update(self) -> None:
+        with self._sync_lock:
+            assert self._index
+            logger.info(f"Sync online sources (current={self._index.v})")
+            online_index = ctx.github.fetch_online_source()
+            if online_index.v <= self._index.v:
+                logger.info("Sources are up to date")
+                return
+
+            # save the latest index
+            user_file = ctx.config.crawler.user_index_file
+            save_source(user_file, online_index)
+
+            # download latest source files
+            for id, source in online_index.crawlers.items():
+                current = self._index.crawlers.get(id)
+                if current and current.version >= source.version:
+                    continue
+                try:
+                    ctx.github.download_online_source(source.file_path)
+                    logger.debug(f"Downloaded source: {source.file_path}")
+                except Exception:
+                    logger.warning(f"Failed to download source: {source.file_path}", exc_info=True)
+
+            # load the online index
+            self.load_index(online_index)
+            logger.info("Source synced.")
 
     def load_index(self, index: CrawlerIndex) -> None:
         self._index = index
@@ -90,8 +116,7 @@ class Sources:
         self.info.clear()
         self.crawlers.clear()
         self.sources.clear()
-        self._taskman.submit_task(
-            self.load_crawlers,
+        self.load_crawlers(
             *ctx.config.crawler.local_sources.glob("**/*.py"),
             *ctx.config.crawler.user_sources.glob("**/*.py"),
         )
@@ -130,33 +155,6 @@ class Sources:
 
         # add keys for searching
         self._store.insert(normalize_url(url), item.domain)
-
-    def update(self) -> None:
-        assert self._index
-        logger.info(f"Sync online sources (current={self._index.v})")
-        online_index = ctx.github.fetch_online_source()
-        if online_index.v <= self._index.v:
-            logger.info("No latest updates found")
-            return
-
-        # save the latest index
-        user_file = ctx.config.crawler.user_index_file
-        save_source(user_file, online_index)
-
-        # download latest source files
-        for id, source in online_index.crawlers.items():
-            current = self._index.crawlers.get(id)
-            if current and current.version >= source.version:
-                continue
-            try:
-                ctx.github.download_online_source(source.file_path)
-                logger.debug(f"Downloaded source: {source.file_path}")
-            except Exception:
-                logger.warning(f"Failed to download source: {source.file_path}", exc_info=True)
-
-        # load the online index
-        self.load_index(online_index)
-        logger.info("Source synced.")
 
     def list(
         self,
