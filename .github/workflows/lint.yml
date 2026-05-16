@@ -60,7 +60,7 @@ jobs:
       - name: 🧹 Lint Code
         run: |
           uv run pyright lncrawl
-          uv run ruff format --diff--check
+          uv run ruff format --diff --check
           uv run ruff check
           git diff --name-only -- "*.py" | xargs -r pyright
 
