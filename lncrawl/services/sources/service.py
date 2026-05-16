@@ -32,6 +32,7 @@ class Sources:
         self._signal: Event
         self._store: FTSStore
         self._index: CrawlerIndex
+        self._sync_thread: Thread
         self._sync_lock = EventLock()
         self.rejected: Dict[str, str] = {}  # Map of host -> rejection reason
         self.crawlers: Dict[str, Type[Crawler]] = {}  # Map of host -> crawler
@@ -60,8 +61,8 @@ class Sources:
         self.sources.clear()
 
     def ensure_load(self):
-        with self._sync_lock:
-            pass
+        if hasattr(self, "_sync_thread"):
+            self._sync_thread.join()
 
     def load(self, sync_remote=True):
         with self._sync_lock:
@@ -73,7 +74,9 @@ class Sources:
 
             # check online sources update
             if sync_remote:
-                Thread(target=self.update).start()
+                t = Thread(target=self.update)
+                t.start()
+                self._sync_thread = t
 
     def update(self) -> None:
         with self._sync_lock:
@@ -102,6 +105,7 @@ class Sources:
             # load the online index
             self.load_index(online_index)
             logger.info("Source synced.")
+        del self._sync_thread
 
     def load_index(self, index: CrawlerIndex) -> None:
         self._index = index
