@@ -10,13 +10,9 @@ from typing import Any, Dict, Iterable, List, Optional, Union
 from ..context import ctx
 from ..exceptions import LNException
 from ..utils.file_tools import atomic_write
-from ..utils.imgen import generate_cover_image
 from ..utils.text_tools import format_title, normalize
 from ..utils.url_tools import extract_base
-from .cleaner import TextCleaner
 from .models import Chapter, Novel, SearchResult, Volume
-from .scraper import Scraper
-from .taskman import TaskManager
 
 
 class Crawler(ABC):
@@ -58,6 +54,10 @@ class Crawler(ABC):
             self.base_url = [self.base_url]
         if not origin or origin not in self.base_url:
             origin = self.base_url[0]
+
+        from .cleaner import TextCleaner
+        from .scraper import Scraper
+        from .taskman import TaskManager
 
         self.cleaner = TextCleaner()
         self.taskman = TaskManager(workers=workers)
@@ -160,6 +160,8 @@ class Crawler(ABC):
         if cover_file.is_file():
             os.utime(cover_file)
             return
+
+        from ..utils.imgen import generate_cover_image
 
         img = generate_cover_image()
         with atomic_write(cover_file) as tmp:

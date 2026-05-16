@@ -4,11 +4,6 @@ from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 from urllib.parse import urlparse
 
-from alembic import command
-from alembic.autogenerate import compare_metadata
-from alembic.config import Config
-from alembic.runtime.migration import MigrationContext
-from alembic.script import ScriptDirectory
 import sqlmodel as sa
 
 from ..context import ctx
@@ -82,6 +77,8 @@ class DB:
     def bootstrap(self, reset_on_failure: bool = False):
         self._ensure_database()
         try:
+            from alembic import command
+
             base = self.base_revision()
             if base and self.has_any_tables() and not self.current_revision():
                 command.stamp(self.alembic_config, base)
@@ -95,7 +92,9 @@ class DB:
             self.bootstrap()
 
     @cached_property
-    def alembic_config(self) -> Config:
+    def alembic_config(self):
+        from alembic.config import Config
+
         cfg = Config()
         migration_path = Path(__file__).parent.parent / "migrations"
         cfg.set_main_option("sqlalchemy.url", ctx.config.db.url)
@@ -113,6 +112,8 @@ class DB:
 
     @cached_property
     def alembic_script(self):
+        from alembic.script import ScriptDirectory
+
         return ScriptDirectory.from_config(self.alembic_config)
 
     def base_revision(self):
@@ -126,6 +127,8 @@ class DB:
             return bool(sa.inspect(conn).get_table_names())
 
     def current_revision(self):
+        from alembic.runtime.migration import MigrationContext
+
         with self.engine.connect() as conn:
             context = MigrationContext.configure(conn)
             return context.get_current_revision()
@@ -218,6 +221,9 @@ class DB:
 
     def _verify_schema(self):
         logger.debug("Verifying database schema...")
+        from alembic.autogenerate import compare_metadata
+        from alembic.runtime.migration import MigrationContext
+
         with self.engine.connect() as conn:
             mc = MigrationContext.configure(
                 conn,
@@ -226,6 +232,7 @@ class DB:
                     # "compare_server_default": True,
                 },
             )
+
             drift = list(compare_metadata(mc, SQLModel.metadata))
             if drift:
                 logger.warning(f"Detected {len(drift)} schema drift(s) against models:")

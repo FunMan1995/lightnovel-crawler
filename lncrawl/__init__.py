@@ -2,9 +2,19 @@
 
 import os
 import sys
+import traceback
+
+# For encoding
+try:
+    reconfigure = getattr(sys.stdout, "reconfigure", None)
+    if callable(reconfigure):
+        reconfigure(encoding="utf-8")
+except Exception:
+    traceback.print_exc()
 
 # For executable bundles
-if not __package__ and not hasattr(sys, "frozen"):
+is_frozen = bool(__package__ and getattr(sys, "frozen", False))
+if is_frozen:
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
 
@@ -13,19 +23,10 @@ if not __package__ and not hasattr(sys, "frozen"):
 
         multiprocessing.freeze_support()
     except Exception:
-        pass
+        traceback.print_exc()
 
-# For encoding
-try:
-    reconfigure = getattr(sys.stdout, "reconfigure", None)
-    if callable(reconfigure):
-        reconfigure(encoding="utf-8")
-except Exception:
-    pass
-
-
-# Remove colors from terminal in CI
-if os.getenv("CI"):
+# Remove colors from terminal
+if is_frozen or os.getenv("CI"):
     os.environ["TERM"] = "dumb"
     os.environ["NO_COLOR"] = "1"
 

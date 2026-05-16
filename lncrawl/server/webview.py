@@ -1,29 +1,30 @@
+from contextlib import suppress
 import logging
 import socket
+import subprocess
 import threading
 import time
+import webbrowser
 
-import webview
-
-from ..assets.htmls import loading_html
 from ..context import ctx
 from ..enums import UserRole
+from ..utils.browser_detect import find_chrome_executables, find_edge_executables, pick_executable
 from ..utils.sockets import free_port
 
 logger = logging.getLogger(__name__)
 
 
-def _wait_for_server(host: str, port: int, timeout: float = 60) -> bool:
+def _start_server(host: str, port: int, timeout: float = 60):
     from ..commands.server import server
 
     t = threading.Thread(
-        target=server,
-        kwargs={
-            "host": host,
-            "port": port,
-        },
         daemon=True,
         name="server",
+        target=server,
+        kwargs=dict(
+            host=host,
+            port=port,
+        ),
     )
     t.start()
 
@@ -31,42 +32,71 @@ def _wait_for_server(host: str, port: int, timeout: float = 60) -> bool:
     while time.monotonic() < deadline:
         try:
             with socket.create_connection((host, port), timeout=0.5):
-                return True
+                return t
         except OSError:
-            time.sleep(0.15)
-    return False
+            pass
+    return None
+
+
+def _start_app_in_browser(url: str, storage_path: str):
+    binaries = find_chrome_executables()
+    if not binaries:
+        binaries = find_edge_executables()
+    if not binaries:
+        return None
+    binary = pick_executable(binaries)
+
+    logger.info(f"Opening app-mode browser: {binary}")
+    args = [
+        str(binary),
+        f"--app={url}",
+        "--new-window",
+        "--window-size=1280,720",
+        f"--user-data-dir={storage_path}",
+    ]
+    return subprocess.Popen(args)
 
 
 def start() -> None:
-    window = webview.create_window(
-        "Lightnovel Crawler",
-        html=loading_html(),
-        width=1280,
-        height=800,
+    host = "localhost"
+    port = free_port(host, 31580)
+
+    ctx.setup(
+        log_level="INFO",
+        reset_db_on_failure=True,
     )
+    ctx.logger.progress_bar = False
 
-    def _boot():
-        ctx.setup(reset_db_on_failure=True)
-        ctx.logger.progress_bar = False
-        token = ctx.users.generate_token(
-            user=ctx.users.get_admin(),
-            expiry_minutes=100 * 365 * 24 * 60,  # 100 years
-            scopes=[UserRole.LOCAL],
-        )
+    token = ctx.users.generate_token(
+        user=ctx.users.get_admin(),
+        expiry_minutes=100 * 365 * 24 * 60,  # 100 years
+        scopes=[UserRole.LOCAL],
+    )
+    url = f"http://{host}:{port}/?authToken={token}"
 
-        host = "localhost"
-        port = free_port(host, 31580)
-        if window and _wait_for_server(host, port):
-            window.load_url(f"http://{host}:{port}/?authToken={token}")
+    storage_path = str(ctx.config.app.app_dir / "app-browser")
+    proc = _start_app_in_browser(url, storage_path)
 
-    storage_path = str(ctx.config.app.app_dir / "webview")
     try:
-        webview.start(
-            func=_boot,
-            private_mode=False,
-            storage_path=storage_path,
-        )
-    except Exception:
-        logger.exception("Webview window exited with an error")
+        server_thread = _start_server(host, port)
+        if not server_thread:
+            raise Exception("Server failed to start")
 
-    ctx.destroy()
+        if not proc:
+            logger.warning("Falling back to system browser")
+            webbrowser.open(url)
+
+        with suppress(KeyboardInterrupt):
+            while not proc or proc.poll() is None:
+                with suppress(TimeoutError):
+                    server_thread.join(0.1)
+
+    finally:
+        if proc:
+            proc.terminate()
+            try:
+                proc.wait(2)
+            except BaseException:
+                proc.kill()
+
+        ctx.destroy()

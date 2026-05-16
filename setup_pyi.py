@@ -32,7 +32,7 @@ BUILD_DIR = SPEC_DIR / "build"
 def build_command():
     command = [
         str(ROOT / "lncrawl" / "__main__.py"),
-        # "--noconsole",
+        "--noconsole",
         "--onefile",
         "--clean",
         "--noconfirm",
@@ -83,6 +83,7 @@ def gather_excluded_modules():
     exclude = [
         "pip",
         "wheel",
+        "ujson",
         "altgraph",
         "macholib",
         "pyinstaller",
