@@ -2216,6 +2216,7 @@ dev = [
     { name = "wheel" },
 ]
 lsp = [
+    { name = "pylsp-rope" },
     { name = "python-lsp-ruff" },
     { name = "python-lsp-server", extra = ["websockets"] },
     { name = "ruff" },
@@ -2247,6 +2248,7 @@ requires-dist = [
     { name = "pyease-grpc", specifier = ">=1.8.0" },
     { name = "pyexecjs", specifier = ">=1.5.1,<2.0.0" },
     { name = "pyinstaller", marker = "extra == 'dev'", specifier = ">=6.0.0" },
+    { name = "pylsp-rope", marker = "extra == 'lsp'", specifier = ">=0.1.17" },
     { name = "pyparsing", specifier = ">=3.0.0,<4.0.0" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.409" },
     { name = "python-box", specifier = ">=7.0.0,<8.0.0" },
@@ -3598,6 +3600,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/48/ef/c72abcfa2c6accd03e7c89c400790fc3d908c5804d50a7c4e9ceabd74d23/pyjsparser-2.7.1.tar.gz", hash = "sha256:be60da6b778cc5a5296a69d8e7d614f1f870faf94e1b1b6ac591f2ad5d729579", size = 24196, upload-time = "2019-04-21T21:56:17.708Z" }
 
 [[package]]
+name = "pylsp-rope"
+version = "0.1.17"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-lsp-server" },
+    { name = "rope" },
+    { name = "typing-extensions", marker = "python_full_version < '3.10'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/51/3d/cfcf7e093c98cccadbccdc8762194cd3afaa4d8aac6731ced5bea92489cb/pylsp_rope-0.1.17.tar.gz", hash = "sha256:4cd6f2fb32c84302b94cb4ce002bc0700b1b656dd5147e7db3dd92303a9a8dc2", size = 21312, upload-time = "2024-11-17T13:05:48.009Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/42/0d/92a83f4f3f0a15017a7831589d7c01408ba8eaede0028eadf6ca022050ee/pylsp_rope-0.1.17-py3-none-any.whl", hash = "sha256:6be821913b3834b3125e64457a8bcf2030c4f1d5cd629bce4c26ba5c2c12f30b", size = 14186, upload-time = "2024-11-17T13:05:46.954Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3875,6 +3891,25 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/52/49/59fdc6fc5a390ae9f308eadeb97dfc70fc2d804ffc49dd39fc97604622ec/pytokens-0.4.1-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:682fa37ff4d8e95f7df6fe6fe6a431e8ed8e788023c6bcc0f0880a12eab80ad1", size = 262196, upload-time = "2026-01-30T01:03:42.696Z" },
     { url = "https://files.pythonhosted.org/packages/3d/e7/d6734dccf0080e3dc00a55b0827ab5af30c886f8bc127bbc04bc3445daec/pytokens-0.4.1-cp39-cp39-win_amd64.whl", hash = "sha256:30f51edd9bb7f85c748979384165601d028b84f7bd13fe14d3e065304093916a", size = 103510, upload-time = "2026-01-30T01:03:43.915Z" },
     { url = "https://files.pythonhosted.org/packages/c6/78/397db326746f0a342855b81216ae1f0a32965deccfd7c830a2dbc66d2483/pytokens-0.4.1-py3-none-any.whl", hash = "sha256:26cef14744a8385f35d0e095dc8b3a7583f6c953c2e3d269c7f82484bf5ad2de", size = 13729, upload-time = "2026-01-30T01:03:45.029Z" },
+]
+
+[[package]]
+name = "pytoolconfig"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/18/dc/abf70d2c2bcac20e8c71a7cdf6d44e4ddba4edf65acb179248d554d743db/pytoolconfig-1.3.1.tar.gz", hash = "sha256:51e6bd1a6f108238ae6aab6a65e5eed5e75d456be1c2bf29b04e5c1e7d7adbae", size = 16655, upload-time = "2024-01-11T16:25:11.914Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/44/da239917f5711ca7105f7d7f9e2765716dd883b241529beafc0f28504725/pytoolconfig-1.3.1-py3-none-any.whl", hash = "sha256:5d8cea8ae1996938ec3eaf44567bbc5ef1bc900742190c439a44a704d6e1b62b", size = 17022, upload-time = "2024-01-11T16:25:10.589Z" },
+]
+
+[package.optional-dependencies]
+global = [
+    { name = "platformdirs", version = "4.4.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
+    { name = "platformdirs", version = "4.9.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 
 [[package]]
@@ -4486,6 +4521,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8e/51/7eea5d949212709740ad07e01c524336e44608ef0614a2a1cb31c9a0ea30/rignore-0.7.6-pp39-pypy39_pp73-musllinux_1_2_armv7l.whl", hash = "sha256:c9f3b420f54199a2b2b3b532d8c7e0860be3fa51f67501113cca6c7bfc392840", size = 1141653, upload-time = "2025-11-05T21:40:43.676Z" },
     { url = "https://files.pythonhosted.org/packages/c4/2b/76ec843cc392fcb4e37d6a8340e823a0bf644872e191d2f5652a4c2c18ee/rignore-0.7.6-pp39-pypy39_pp73-musllinux_1_2_i686.whl", hash = "sha256:1c6795e3694d750ae5ef172eab7d68a52aefbd9168d2e06647df691db2b03a50", size = 1121465, upload-time = "2025-11-05T21:41:00.904Z" },
     { url = "https://files.pythonhosted.org/packages/7c/9d/e69ad5cf03211a1076f9fe04ca2698c9cb8208b63419c928c26646bdf1d9/rignore-0.7.6-pp39-pypy39_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:750a83a254b020e1193bfa7219dc7edca26bd8888a94cdc59720cbe386ab0c72", size = 1130110, upload-time = "2025-11-05T21:41:20.263Z" },
+]
+
+[[package]]
+name = "rope"
+version = "1.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytoolconfig", extra = ["global"] },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/74/3a/85e60d154f26ecdc1d47a63ac58bd9f32a5a9f3f771f6672197f02a00ade/rope-1.14.0.tar.gz", hash = "sha256:8803e3b667315044f6270b0c69a10c0679f9f322ed8efe6245a93ceb7658da69", size = 296801, upload-time = "2025-07-12T17:46:07.786Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/35/130469d1901da2b3a5a377539b4ffcd8a5c983f1c9e3ba5ffdd8d71ae314/rope-1.14.0-py3-none-any.whl", hash = "sha256:00a7ea8c0c376fc0b053b2f2f8ef3bfb8b50fecf1ebf3eb80e4f8bd7f1941918", size = 207143, upload-time = "2025-07-12T17:46:05.928Z" },
 ]
 
 [[package]]

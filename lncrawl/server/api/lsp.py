@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import time
 
@@ -14,6 +15,60 @@ router = APIRouter()
 
 _VIRTUAL_ROOT = b"file:///workspace"
 _PROJECT_URI = _PROJECT_ROOT.as_uri().encode()
+_PYLSP_SETTINGS = {
+    "signature": {
+        "formatter": "ruff",
+    },
+    "plugins": {
+        "jedi_completion": {
+            "enabled": True,
+            "include_params": True,
+        },
+        "jedi_definition": {
+            "enabled": True,
+            "follow_builtin_imports": True,
+            "follow_imports": True,
+        },
+        "ruff": {
+            # https://github.com/python-lsp/python-lsp-ruff
+            "enabled": True,
+            "preview": False,
+            "unsafeFixes": False,
+            "formatEnabled": True,
+            "format": ["I", "E", "W", "F"],
+            "select": ["I", "E", "W", "F"],
+            "ignore": ["E203", "E265", "E501"],
+            "lineLength": 100,
+            "line-ending": "lf",
+            "indent-style": "space",
+            "targetVersion": "py39",
+            "quote-style": "double",
+            "docstring-code-format": True,
+            "docstring-code-line-length": 88,
+        },
+        "pyflakes": {
+            "enabled": False,
+        },
+        "pycodestyle": {
+            "enabled": False,
+        },
+        "autopep8": {
+            "enabled": False,
+        },
+        "yapf": {
+            "enabled": False,
+        },
+        "black": {
+            "enabled": False,
+        },
+        "mccabe": {
+            "enabled": False,
+        },
+        "pylsp_mypy": {
+            "enabled": False,
+        },
+    },
+}
 
 
 async def _wait_for_lsp_ready(host: str, port: int, timeout: float = 5.0) -> bool:
@@ -49,6 +104,28 @@ async def _relay_tcp(client: WebSocket, host: str, port: int) -> None:
     reader, writer = await asyncio.open_connection(host, port)
     idle_timeout: float = ctx.config.lsp.idle_timeout
     last_activity = time.monotonic()
+    config_sent = False
+
+    async def _send_to_lsp(obj: dict) -> None:
+        body = json.dumps(obj).encode()
+        writer.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
+        await writer.drain()
+
+    async def _send_config(body: bytes) -> None:
+        # Inject _PYLSP_SETTINGS right after the client sends 'initialized'.
+        nonlocal config_sent
+        try:
+            if json.loads(body).get("method") == "initialized":
+                config_sent = True
+                await _send_to_lsp(
+                    {
+                        "jsonrpc": "2.0",
+                        "method": "workspace/didChangeConfiguration",
+                        "params": {"settings": {"pylsp": _PYLSP_SETTINGS}},
+                    }
+                )
+        except (json.JSONDecodeError, AttributeError):
+            pass
 
     async def _forward_to_upstream():
         nonlocal last_activity
@@ -58,6 +135,8 @@ async def _relay_tcp(client: WebSocket, host: str, port: int) -> None:
                 last_activity = time.monotonic()
                 writer.write(f"Content-Length: {len(body)}\r\n\r\n".encode() + body)
                 await writer.drain()
+                if not config_sent:
+                    await _send_config(body)
         except Exception:
             pass
 

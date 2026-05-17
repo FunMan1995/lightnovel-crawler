@@ -41,7 +41,7 @@ class Sources:
 
     @property
     def version(self) -> int:
-        if not self._index:
+        if not hasattr(self, "_index"):
             raise ServerErrors.source_not_loaded
         return self._index.v
 
@@ -80,9 +80,10 @@ class Sources:
 
     def update(self) -> None:
         with self._sync_lock:
-            assert self._index
-            logger.info(f"Sync online sources (current={self._index.v})")
+            logger.info(f"Sync online sources (current={self.version})")
             online_index = ctx.github.fetch_online_source()
+            if not hasattr(self, "_index"):
+                return
             if online_index.v <= self._index.v:
                 logger.info("Sources are up to date")
                 return

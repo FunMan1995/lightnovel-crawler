@@ -53,7 +53,7 @@ class PyLSP_Session:
             **extra,
         )
         self._start_pipe_reader(self._process.stdout, logging.DEBUG)
-        self._start_pipe_reader(self._process.stderr, logging.WARNING)
+        self._start_pipe_reader(self._process.stderr, logging.DEBUG)
         logger.info(
             "LSP session started (pid=%d) on %s:%d", self._process.pid, self.host, self.port
         )
@@ -80,6 +80,7 @@ class PyLSP_Session:
         else:
             exe = [sys.executable, "-m", "pylsp"]
         return exe + [
+            "-vvv",
             "--tcp",
             "--host",
             self.host,
