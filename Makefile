@@ -49,13 +49,12 @@ submodule:
 
 remove-tag:
 	git diff --exit-code HEAD
-	git push --delete origin "v$(VERSION)"
 	git tag -d "v$(VERSION)"
 
 push-tag:
 	git diff --exit-code HEAD
 	git tag "v$(VERSION)"
-	@git push --tags
+	@git push -f --tags
 
 push-tag-force: remove-tag push-tag
 
