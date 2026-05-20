@@ -26,9 +26,10 @@ make check-sources    # Validate source crawlers (scripts/check_sources.py)
 make patch | minor | major
 
 # Build
-make build            # version + install + wheel + exe
+make build            # version + install + wheel + exe + installer (Windows)
 make build-wheel      # python -m build -w
-make build-exe        # PyInstaller (setup_pyi.py)
+make build-exe        # PyInstaller (setup_pyi.py) — onedir on Windows, onefile on Mac/Linux
+make build-installer  # Inno Setup → dist/lncrawl.exe installer (Windows only, no-op elsewhere)
 
 # Dependencies (PKG is the second word; uses uv add/remove)
 make add-dep <pkg>    # main dep
@@ -62,7 +63,8 @@ Both share a single in-process `AppContext` (`ctx`) singleton; nothing is meant 
 
 ### Entry points
 
-- [lncrawl/__main__.py](lncrawl/__main__.py) → [lncrawl/app.py](lncrawl/app.py): Typer CLI. Subcommands `version`, `config`, `sources`, `crawl`, `search`, `server`, plus hidden `dev`. With no subcommand, falls back to launching the server.
+- [lncrawl/__main__.py](lncrawl/__main__.py) → [lncrawl/app.py](lncrawl/app.py): Typer CLI. Subcommands `version`, `config`, `sources`, `crawl`, `search`, `server`, `app`, plus hidden `dev`. `app` subcommand launches the desktop webview (`lncrawl/server/webview.py`). When running as a **frozen executable** (PyInstaller), `__main__.py` calls `webview.start()` directly, bypassing the CLI.
+- [lncrawl/server/webview.py](lncrawl/server/webview.py): Desktop launcher. Opens the app in Chrome/Edge app-mode; falls back to system browser + a small tkinter status window (shows URL, Copy URL, Stop Server) when no app-mode browser is found.
 - [lncrawl/server/app.py](lncrawl/server/app.py): FastAPI app. `lifespan` calls `ctx.setup()` then `ctx.scheduler.start()`. API mounted at `/api`, web SPA (the [lncrawl/server/web](lncrawl/server/web) git submodule, built artifacts) served from `/`. OpenAPI at `/docs`, `/redoc`, `/openapi.json`.
 
 ### AppContext singleton
@@ -104,6 +106,22 @@ Pydantic request/response models live in [lncrawl/server/models/](lncrawl/server
 ### Configuration
 
 [lncrawl/config.py](lncrawl/config.py): typed config with cached properties. Data dir resolves from env `LNCRAWL_DATA_PATH` first, otherwise `typer.get_app_dir("LNCrawl", force_posix=True, roaming=True)` — on Windows this is `%APPDATA%\LNCrawl`. Config file defaults to `<data>/config.json`. Properties annotated with `Sensitive` are flagged in the admin API.
+
+## Windows Packaging
+
+`setup_pyi.py` drives PyInstaller. Platform behaviour differs deliberately:
+
+| Platform | Mode | Output |
+|----------|------|--------|
+| Windows | `--onedir` | `dist/lncrawl/` directory (fast startup — no extraction step) |
+| Mac / Linux | `--onefile` | `dist/lncrawl` single binary |
+
+After `build-exe` on Windows, `make build-installer` (or the CI step) compiles [installer/installer.iss](installer/installer.iss) with Inno Setup 6 into `dist/lncrawl.exe` — a self-contained installer that handles install, upgrade, uninstall, optional desktop shortcut, and optional PATH entry. Inno Setup 6 is pre-installed on GitHub Actions `windows-latest` runners.
+
+Key installer design decisions:
+- **Per-user install by default** (`PrivilegesRequired=lowest`) — no UAC prompt. Users can opt into a machine-wide install via the dialog.
+- **Stable `AppId` GUID** in `installer.iss` — never change it; Inno Setup uses it to identify upgrades and the uninstaller entry.
+- The installed `lncrawl.exe` inside Program Files won't carry the "downloaded from internet" zone marker, so Windows won't flag it as dangerous at launch. The installer itself requires a code-signing certificate to suppress SmartScreen (see comment at the top of `installer.iss`).
 
 ## Adding a New Source Crawler
 

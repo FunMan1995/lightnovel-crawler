@@ -7,6 +7,8 @@ import sys
 if sys.version_info[:2] < (3, 9):
     raise RuntimeError("This app only supports Python 3.9 and later.")
 
+IS_WINDOWS = sys.platform == "win32"
+
 ROOT = Path(__file__).resolve().parent
 
 # Determine venv directory: use VIRTUAL_ENV if set, otherwise detect based on OS
@@ -33,7 +35,7 @@ def build_command():
     command = [
         str(ROOT / "lncrawl" / "__main__.py"),
         "--noconsole",
-        "--onefile",
+        "--onedir" if IS_WINDOWS else "--onefile",
         "--clean",
         "--noconfirm",
         "--name=lncrawl",
@@ -100,8 +102,11 @@ def package():
     print(" ".join(command))
     print("-" * 60)
 
-    # Cleanup and prepare build directory
-    shutil.rmtree(SPEC_DIR, ignore_errors=True)
+    # Cleanup only build artifacts inside the spec dir, not the whole directory
+    # (installer.iss and other files in windows/ must be preserved)
+    shutil.rmtree(BUILD_DIR, ignore_errors=True)
+    for spec_file in SPEC_DIR.glob("*.spec"):
+        spec_file.unlink(missing_ok=True)
     SPEC_DIR.mkdir(parents=True, exist_ok=True)
 
     # Run PyInstaller
@@ -113,9 +118,12 @@ def package():
     shutil.rmtree(BUILD_DIR, ignore_errors=True)
 
     # Final output confirmation
-    OUTPUT_EXE = DIST_DIR / "lncrawl.exe"
-    OUTPUT_POSIX = DIST_DIR / "lncrawl"
-    if OUTPUT_EXE.is_file():
+    OUTPUT_WIN = DIST_DIR / "lncrawl" / "lncrawl.exe"  # onedir (Windows)
+    OUTPUT_EXE = DIST_DIR / "lncrawl.exe"              # onefile fallback
+    OUTPUT_POSIX = DIST_DIR / "lncrawl"                # onefile (Mac/Linux)
+    if OUTPUT_WIN.is_file():
+        print(f"✅ Executable created: {OUTPUT_WIN}")
+    elif OUTPUT_EXE.is_file():
         print(f"✅ Executable created: {OUTPUT_EXE}")
     elif OUTPUT_POSIX.is_file():
         print(f"✅ Executable created: {OUTPUT_POSIX}")

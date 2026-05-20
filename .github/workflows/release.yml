@@ -46,7 +46,7 @@ jobs:
           python-version: "3.12"
           enable-cache: true
 
-      - name: 🏗️ Build Executable
+      - name: 🏗️ Build Executable (onedir)
         env:
           PYTHONIOENCODING: utf-8
           UV_PROJECT_ENVIRONMENT: .venv
@@ -54,7 +54,14 @@ jobs:
           uv sync --all-extras --all-groups
           uv run python -m build -w
           uv run python setup_pyi.py
-          .\dist\lncrawl.exe -ll sources list
+          .\dist\lncrawl\lncrawl.exe -ll sources list
+
+      - name: 📦 Build Installer
+        run: |
+          $version = (Get-Content "lncrawl/VERSION").Trim()
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" `
+            "installer\installer.iss" `
+            "/DMyAppVersion=$version"
 
       - name: 📦 Upload Artifact
         uses: actions/upload-artifact@v7

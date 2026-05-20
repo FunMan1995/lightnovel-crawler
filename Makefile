@@ -7,7 +7,7 @@
 	major minor patch \
 	lint lint-fix start dev watch add-source \
 	index-gen check-sources \
-	build-wheel build-exe build \
+	build-wheel build-exe build-installer build \
 	docker-base docker-build docker-up docker-down docker-logs \
 	remove-tag push-tag push-tag-force \
 	add-dep add-dev rm-dep rm-dev
@@ -145,7 +145,14 @@ build-wheel:
 build-exe:
 	$(UV) run python setup_pyi.py
 
-build: version install build-wheel build-exe
+build-installer:
+ifeq ($(OS),Windows_NT)
+	$(PS) "& 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' 'installer\installer.iss' '/DMyAppVersion=$(VERSION)'"
+else
+	@echo "Skipping installer build (Windows only)"
+endif
+
+build: version install build-wheel build-exe build-installer
 
 # =============================================================================
 # Docker

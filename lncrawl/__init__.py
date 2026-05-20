@@ -37,6 +37,11 @@ def main():
         from pylsp import __main__ as _pylsp_main
 
         _pylsp_main.main()
+    elif is_frozen:
+        # Start server from executable bundle
+        from .server.webview import start
+
+        start()
     else:
         # Start main app
         from .app import app
