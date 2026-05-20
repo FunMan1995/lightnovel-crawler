@@ -18,7 +18,7 @@
 ### What you can do with it
 
 - Save a story you follow into a **single EPUB** (or another format) instead of hundreds of separate web pages.
-- Run a **small private server** on your home network so you can use the same workflow from another device on that network.
+- Run a **small private server** on your home network to collect all your favorite novels in one place.
 
 ### Use it responsibly
 
