@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 
+from contextlib import suppress
 import os
 import sys
-import traceback
 
 # For encoding
-try:
+with suppress(Exception):
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if callable(reconfigure):
         reconfigure(encoding="utf-8")
-except Exception:
-    traceback.print_exc()
 
 # For executable bundles
 is_frozen = bool(__package__ and getattr(sys, "frozen", False))
@@ -18,15 +16,13 @@ if is_frozen:
     path = os.path.realpath(os.path.abspath(__file__))
     sys.path.insert(0, os.path.dirname(os.path.dirname(path)))
 
-    try:
+    with suppress(Exception):
         import multiprocessing
 
         multiprocessing.freeze_support()
-    except Exception:
-        traceback.print_exc()
 
-# Remove colors from terminal
-if is_frozen or os.getenv("CI"):
+# Remove colors from terminal (Windows frozen builds and CI environments don't support ANSI)
+if os.getenv("CI") or (is_frozen and sys.platform == "win32"):
     os.environ["TERM"] = "dumb"
     os.environ["NO_COLOR"] = "1"
 
@@ -37,8 +33,15 @@ def main():
         from pylsp import __main__ as _pylsp_main
 
         _pylsp_main.main()
-    elif is_frozen:
-        # Start server from executable bundle
+    elif is_frozen and len(sys.argv) <= 1:
+        # No CLI args: double-click launch — hide the console window then start the GUI.
+        # The exe is built as a console subsystem app (so CLI works properly),
+        # so we hide the console window here before opening the webview.
+        if sys.platform == "win32":
+            import ctypes
+
+            ctypes.windll.kernel32.FreeConsole()
+
         from .server.webview import start
 
         start()
