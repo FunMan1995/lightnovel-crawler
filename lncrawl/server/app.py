@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import mimetypes
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -76,9 +77,13 @@ async def serve_web(fallback: str):
     target_file = web_dir.joinpath(fallback)
     if not target_file.is_file():
         target_file = web_dir / "index.html"
+    mime_type, _ = mimetypes.guess_type(target_file)
+    if not mime_type:
+        mime_type = "application/octet-stream"
     if target_file.name in {"index.html", "sw.js", "registerSW.js"}:
         return FileResponse(
             target_file,
+            media_type=mime_type,
             headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
         )
-    return FileResponse(target_file)
+    return FileResponse(target_file, media_type=mime_type)
