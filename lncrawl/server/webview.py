@@ -60,6 +60,7 @@ def _build_url(host: str, port: int, storage_path: Path):
     finally:
         ctx.destroy()
 
+    saved_url_path.parent.mkdir(parents=True, exist_ok=True)
     saved_url_path.write_text(url)
     return url
 
