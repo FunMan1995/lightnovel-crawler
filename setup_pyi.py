@@ -119,8 +119,8 @@ def package():
 
     # Final output confirmation
     OUTPUT_WIN = DIST_DIR / "lncrawl" / "lncrawl.exe"  # onedir (Windows)
-    OUTPUT_EXE = DIST_DIR / "lncrawl.exe"              # onefile fallback
-    OUTPUT_POSIX = DIST_DIR / "lncrawl"                # onefile (Mac/Linux)
+    OUTPUT_EXE = DIST_DIR / "lncrawl.exe"  # onefile fallback
+    OUTPUT_POSIX = DIST_DIR / "lncrawl"  # onefile (Mac/Linux)
     if OUTPUT_WIN.is_file():
         print(f"✅ Executable created: {OUTPUT_WIN}")
     elif OUTPUT_EXE.is_file():
