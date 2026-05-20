@@ -18,7 +18,6 @@
 ### What you can do with it
 
 - Save a story you follow into a **single EPUB** (or another format) instead of hundreds of separate web pages.
-- **Search** supported sites from the app and pick a title without copying long URLs by hand.
 - Run a **small private server** on your home network so you can use the same workflow from another device on that network.
 
 ### Use it responsibly
