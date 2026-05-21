@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from .platforms import Platform
 
@@ -90,13 +90,24 @@ def find_edge_executables() -> List[str]:
             "microsoft-edge",
             "microsoft-edge-stable",
             "microsoft-edge-beta",
+            "microsoft-edge-dev",
+            "msedge",
         ),
-        linux_app_path=[],
+        linux_app_path=[
+            "/usr/share/microsoft-edge/microsoft-edge",
+            "/var/lib/flatpak/exports/bin/com.microsoft.Edge",
+        ],
         mac_app_path=[
             "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Microsoft Edge Beta.app/Contents/MacOS/Microsoft Edge Beta",
+            "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
+            "/Applications/Microsoft Edge Canary.app/Contents/MacOS/Microsoft Edge Canary",
         ],
         windows_path=[
             "Microsoft/Edge/Application",
+            "Microsoft/Edge Beta/Application",
+            "Microsoft/Edge Dev/Application",
+            "Microsoft/Edge Canary/Application",
         ],
         windows_exe_name=[
             "msedge.exe",
@@ -104,14 +115,139 @@ def find_edge_executables() -> List[str]:
     )
 
 
-def pick_executable(available: List[str]) -> str:
+def find_brave_executables() -> List[str]:
     """
-    Returns the executable with the shorted path
+    Scans standard cross-platform operating system installations
+    to auto-detect the Brave Browser executable path.
     """
-    if not available:
-        raise FileNotFoundError("No valid executable file path found.")
+    return find_executables(
+        posix_app_name=(
+            "brave-browser",
+            "brave-browser-stable",
+            "brave",
+        ),
+        linux_app_path=[
+            "/var/lib/flatpak/exports/bin/com.brave.Browser",
+            "/usr/share/brave-browser/brave-browser",
+        ],
+        mac_app_path=[
+            "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+        ],
+        windows_path=[
+            "BraveSoftware/Brave-Browser/Application",
+            "BraveSoftware/Brave-Browser-Beta/Application",
+            "BraveSoftware/Brave-Browser-Nightly/Application",
+        ],
+        windows_exe_name=[
+            "brave.exe",
+        ],
+    )
 
-    if len(available) == 1:
-        return available[0]
 
-    return min(available, key=len)
+def find_vivaldi_executables() -> List[str]:
+    """
+    Scans standard cross-platform operating system installations
+    to auto-detect the Vivaldi browser executable path.
+    """
+    return find_executables(
+        posix_app_name=(
+            "vivaldi",
+            "vivaldi-stable",
+            "vivaldi-snapshot",
+        ),
+        linux_app_path=[
+            "/usr/share/vivaldi/vivaldi",
+            "/var/lib/flatpak/exports/bin/com.vivaldi.Vivaldi",
+        ],
+        mac_app_path=[
+            "/Applications/Vivaldi.app/Contents/MacOS/Vivaldi",
+        ],
+        windows_path=[
+            "Vivaldi/Application",
+        ],
+        windows_exe_name=[
+            "vivaldi.exe",
+        ],
+    )
+
+
+def find_yandex_executables() -> List[str]:
+    """
+    Scans standard cross-platform operating system installations
+    to auto-detect the Yandex Browser executable path.
+    """
+    return find_executables(
+        posix_app_name=(
+            "yandex-browser",
+            "yandex-browser-stable",
+            "yandex-browser-beta",
+        ),
+        linux_app_path=[
+            "/usr/share/yandex-browser/yandex_browser",
+        ],
+        mac_app_path=[
+            "/Applications/Yandex.app/Contents/MacOS/Yandex",
+        ],
+        windows_path=[
+            "Yandex/YandexBrowser/Application",
+        ],
+        windows_exe_name=[
+            "browser.exe",
+        ],
+    )
+
+
+def find_whale_executables() -> List[str]:
+    """
+    Scans standard cross-platform operating system installations
+    to auto-detect the Naver Whale browser executable path.
+    """
+    return find_executables(
+        posix_app_name=(
+            "naver-whale",
+            "naver-whale-stable",
+        ),
+        linux_app_path=[
+            "/usr/share/naver-whale/naver-whale",
+        ],
+        mac_app_path=[
+            "/Applications/Whale.app/Contents/MacOS/Whale",
+        ],
+        windows_path=[
+            "Naver/Naver Whale/Application",
+        ],
+        windows_exe_name=[
+            "whale.exe",
+        ],
+    )
+
+
+def find_all_chromium_executables() -> List[str]:
+    """
+    Searches for all available Chromium-based browser executables across
+    Chrome, Edge, Brave, Vivaldi, Yandex, and Whale.
+    Returns a deduplicated list of valid executable paths.
+    """
+    seen = set()
+    results = []
+    for exe in (
+        find_chrome_executables()
+        + find_edge_executables()
+        + find_brave_executables()
+        + find_vivaldi_executables()
+        + find_yandex_executables()
+        + find_whale_executables()
+    ):
+        if exe not in seen:
+            seen.add(exe)
+            results.append(exe)
+    return results
+
+
+def pick_executable() -> Optional[str]:
+    """
+    Searches for all available Chromium-based browser executables across
+    Chrome, Edge, Brave, Vivaldi, Yandex, and Whale sequentially.
+    Returns the first executable with the shorted path, or None if not found.
+    """
+    return min(find_all_chromium_executables(), key=len, default=None)

@@ -9,7 +9,7 @@ import time
 from ..assets.images import lncrawl_icon
 from ..context import ctx
 from ..enums import UserRole
-from ..utils.browser_detect import find_chrome_executables, find_edge_executables, pick_executable
+from ..utils.browser_detect import pick_executable
 from ..utils.sockets import free_port
 
 logger = logging.getLogger(__name__)
@@ -67,12 +67,9 @@ def _build_url(host: str, port: int, storage_path: Path):
 
 
 def _start_app_in_browser(url: str, storage_path: Path):
-    binaries = find_chrome_executables()
-    if not binaries:
-        binaries = find_edge_executables()
-    if not binaries:
+    binary = pick_executable()
+    if not binary:
         return None
-    binary = pick_executable(binaries)
 
     logger.info(f"Opening app-mode browser: {binary}")
     args = [
