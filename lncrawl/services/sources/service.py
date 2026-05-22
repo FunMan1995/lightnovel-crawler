@@ -61,8 +61,9 @@ class Sources:
         self.sources.clear()
 
     def ensure_load(self):
-        if hasattr(self, "_sync_thread"):
+        if hasattr(self, "_sync_thread") and self._sync_thread:
             self._sync_thread.join()
+            del self._sync_thread
 
     def load(self, sync_remote=True):
         with self._sync_lock:
@@ -106,7 +107,6 @@ class Sources:
             # load the online index
             self.load_index(online_index)
             logger.info("Source synced.")
-        del self._sync_thread
 
     def load_index(self, index: CrawlerIndex) -> None:
         self._index = index
