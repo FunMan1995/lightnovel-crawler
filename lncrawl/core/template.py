@@ -4,13 +4,11 @@ import json
 import logging
 from typing import Iterable, MutableMapping, Optional
 
-from PIL import Image
 from requests.utils import CaseInsensitiveDict
 
 from ..context import ctx
 from ..exceptions import LNException, ScraperErrorGroup
 from ..utils.event_lock import EventLock
-from .browser import Browser, By
 from .crawler import Crawler
 from .models import Chapter, Novel, SearchResult, Volume
 from .soup import PageSoup
@@ -311,6 +309,8 @@ class BrowserTemplate(SoupTemplate):
     # ------------------------------------------------------------------------- #
 
     def _override_scraper_get_soup(self) -> None:
+        from .browser import By
+
         origin_method = self.scraper.get_soup
 
         def get_soup(url, *args, **kwargs):
@@ -327,6 +327,10 @@ class BrowserTemplate(SoupTemplate):
         setattr(self.scraper, "get_soup", get_soup)
 
     def _override_scraper_get_image(self) -> None:
+        from PIL import Image
+
+        from .browser import By
+
         origin_method = self.scraper.get_image
 
         def get_image(url, *args, **kwargs):
@@ -392,7 +396,9 @@ class BrowserTemplate(SoupTemplate):
     # ------------------------------------------------------------------------- #
 
     @cached_property
-    def browser(self) -> Browser:
+    def browser(self):
+        from .browser import Browser
+
         if not ctx.config.crawler.can_use_browser:
             raise RuntimeError("Browser is disabled in the configuration")
 

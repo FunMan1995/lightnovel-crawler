@@ -2,9 +2,8 @@ import asyncio
 import base64
 from enum import Enum
 import logging
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional
 
-import nodriver
 from requests.cookies import RequestsCookieJar
 
 from ..context import ctx
@@ -12,6 +11,9 @@ from ..utils.async_loop import run_async
 from ..webdriver import create_new
 from ..webdriver.storage import BrowserStorage
 from .soup import PageSoup
+
+if TYPE_CHECKING:
+    from nodriver import Browser as UCBrowser, Element, Tab
 
 logger = logging.getLogger(__name__)
 
@@ -52,11 +54,11 @@ def _to_css(selector: str, by: By) -> str:
 
 
 async def _tab_find(
-    tab: nodriver.Tab,
+    tab: "Tab",
     selector: str,
     by: By,
     timeout: float = 0,
-) -> Optional[nodriver.Element]:
+) -> Optional["Element"]:
     try:
         if by == By.XPATH:
             results = await tab.xpath(selector)
@@ -72,10 +74,10 @@ async def _tab_find(
 
 
 async def _tab_find_all(
-    tab: nodriver.Tab,
+    tab: "Tab",
     selector: str,
     by: By,
-) -> List[nodriver.Element]:
+) -> List["Element"]:
     try:
         if by == By.XPATH:
             results = await tab.xpath(selector)
@@ -90,10 +92,10 @@ async def _tab_find_all(
 
 
 async def _elem_find_xpath(
-    tab: nodriver.Tab,
-    nd_elem: nodriver.Element,
+    tab: "Tab",
+    nd_elem: "Element",
     xpath: str,
-) -> Optional[nodriver.Element]:
+) -> Optional["Element"]:
     global _xpath_seq
     _xpath_seq += 1
     attr = f"data-nd-xp-{_xpath_seq}"
@@ -113,10 +115,10 @@ async def _elem_find_xpath(
 
 
 async def _elem_find_xpath_all(
-    tab: nodriver.Tab,
-    nd_elem: nodriver.Element,
+    tab: "Tab",
+    nd_elem: "Element",
     xpath: str,
-) -> List[nodriver.Element]:
+) -> List["Element"]:
     global _xpath_seq
     _xpath_seq += 1
     attr = f"data-nd-xpa-{_xpath_seq}"
@@ -144,7 +146,7 @@ async def _elem_find_xpath_all(
 
 
 class WebElement:
-    def __init__(self, tab: nodriver.Tab, elem: nodriver.Element) -> None:
+    def __init__(self, tab: "Tab", elem: "Element") -> None:
         self._tab = tab
         self._elem = elem
 
@@ -178,11 +180,13 @@ class WebElement:
         return [WebElement(self._tab, e) for e in elements]
 
     def find(self, selector: str, by: By = By.CSS_SELECTOR) -> Optional["WebElement"]:
+        from nodriver import Element
+
         if by == By.XPATH:
             nd_elem = run_async(_elem_find_xpath(self._tab, self._elem, selector))
         else:
             result = run_async(self._elem.query_selector(_to_css(selector, by)))
-            nd_elem = result if isinstance(result, nodriver.Element) else None
+            nd_elem = result if isinstance(result, Element) else None
         return WebElement(self._tab, nd_elem) if nd_elem else None
 
     def click(self) -> None:
@@ -256,8 +260,8 @@ class Browser:
         self.timeout = timeout
         self.headless = headless
         self.cookie_store = cookie_store
-        self._browser: Optional[nodriver.Browser] = None
-        self._tab: Optional[nodriver.Tab] = None
+        self._tab: Optional["Tab"] = None
+        self._browser: Optional["UCBrowser"] = None
         self.local_storage = BrowserStorage(self, "localStorage")
         self.session_storage = BrowserStorage(self, "sessionStorage")
 
