@@ -52,6 +52,7 @@ def build_command():
 
 def gather_data_files():
     file_map = {
+        ROOT / "pyproject.toml": ".",
         ROOT / "lncrawl": "lncrawl",
         ROOT / "sources": "sources",
         SITE_PACKAGES / "wcwidth" / "version.json": "wcwidth",
