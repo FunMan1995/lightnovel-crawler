@@ -5,10 +5,10 @@ from typing import List, Optional
 import nodriver
 
 from ..exceptions import LNException
+from ..utils.async_loop import run_async
 from ..utils.browser_detect import pick_executable
 from ..utils.platforms import Platform, Screen
 from .job_queue import acquire_queue, release_queue
-from .loop import run_async
 
 logger = logging.getLogger(__name__)
 

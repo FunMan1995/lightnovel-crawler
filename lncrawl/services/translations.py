@@ -1,4 +1,4 @@
-﻿from hashlib import sha256
+from hashlib import sha256
 import logging
 from threading import Event
 from typing import Generator, Iterable, List, Optional, Tuple

@@ -2,8 +2,6 @@ import logging
 import os
 from typing import List, Optional
 
-import nodriver
-
 from ..context import ctx
 
 logger = logging.getLogger(__name__)
@@ -15,11 +13,12 @@ def create_new(
     user_data_dir: Optional[str] = None,
     headless: bool = False,
     **kwargs,
-) -> nodriver.Browser:
+):
     """Create a new nodriver browser instance."""
     if not user_data_dir:
         user_data_dir = str(ctx.config.app.app_dir / "webdriver")
         os.makedirs(user_data_dir, exist_ok=True)
+
     from .local import create_local
 
     return create_local(

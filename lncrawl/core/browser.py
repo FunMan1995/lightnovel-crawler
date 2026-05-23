@@ -8,9 +8,8 @@ import nodriver
 from requests.cookies import RequestsCookieJar
 
 from ..context import ctx
+from ..utils.async_loop import run_async
 from ..webdriver import create_new
-from ..webdriver.job_queue import check_active
-from ..webdriver.loop import run_async
 from ..webdriver.storage import BrowserStorage
 from .soup import PageSoup
 
@@ -275,7 +274,7 @@ class Browser:
     def close(self) -> None:
         if not self._browser:
             return
-        ctx.logger.info("Closing browser")
+        ctx.logger.debug("Closing browser")
         try:
             self._browser.stop()
         except Exception:
@@ -286,7 +285,8 @@ class Browser:
     def open_browser(self) -> None:
         if self._browser:
             return
-        ctx.logger.info("Opening browser")
+        ctx.logger.debug("Opening browser")
+
         self._browser = create_new(
             extra_args=self.extra_args,
             timeout=self.timeout,
@@ -297,6 +297,8 @@ class Browser:
 
     @property
     def active(self) -> bool:
+        from ..webdriver.job_queue import check_active
+
         return check_active(self._browser)
 
     @property
