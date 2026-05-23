@@ -23,10 +23,10 @@ class TranslationService:
     def __init__(self) -> None:
         self._failing: Dict[BackendBase, float] = {}
         self._backends: List[BackendBase] = [
+            BingTranslate(),
             GoogleMobileTranslate(),
             LingvaTranslate(),
             BaiduTranslate(),
-            BingTranslate(),
             GoogleGtxTranslate(),
             GoogleClient5Translate(),
         ]
@@ -118,21 +118,15 @@ class TranslationService:
         if row and row.content_hash == content_hash and row.is_available:
             return
 
-        done = 0
         total = 0
         results = []
         for out in self.translate_html(content, target, signal):
             if isinstance(out, str):
-                done += 1
                 results.append(out)
             else:
-                done = 0
                 total = out
                 results.clear()
-            yield done, total
-
-        if done != total or not results:
-            raise ServerErrors.translation_failure.with_extra(f"Language: {target}")
+            yield len(results), total
         translated = "".join(results)
 
         with ctx.db.session() as sess:
