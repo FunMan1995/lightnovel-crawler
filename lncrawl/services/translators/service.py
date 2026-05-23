@@ -52,7 +52,7 @@ class TranslationService:
         message = f"{repr(backend)} failed: {':'.join(str(e).split(':')[:2])}"
         logger.info(message, exc_info=ctx.logger.is_debug)
         if "429 Client Error" in message:
-            logger.warning(f"Disable '{backend!r}' to avoid 429 Client Error")
+            logger.warning(f"Disabling '{backend!r}' to avoid 429 error")
             self._failing[backend] = time.monotonic()
 
     def translate_text(
@@ -63,10 +63,11 @@ class TranslationService:
     ) -> str:
         for backend in self._available_backends(target):
             try:
+                logger.info(f"Using {backend!r} for Text ({target})")
                 return backend.translate(text, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
-        raise ServerErrors.translation_failure.with_extra(f"Language: {target}")
+        raise ServerErrors.translation_failure.with_extra("all backends down")
 
     def translate_batch(
         self,
@@ -76,10 +77,11 @@ class TranslationService:
     ) -> Iterable[str]:
         for backend in self._available_backends(target):
             try:
+                logger.info(f"Using {backend!r} for Batch Text ({target})")
                 return backend.translate_batch(text, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
-        raise ServerErrors.translation_failure.with_extra(f"Language: {target}")
+        raise ServerErrors.translation_failure.with_extra("all backends down")
 
     def translate_html(
         self,
@@ -89,10 +91,11 @@ class TranslationService:
     ) -> Generator[Union[int, str], None, None]:
         for backend in self._available_backends(target):
             try:
+                logger.info(f"Using {backend!r} for HTML ({target})")
                 return backend.translate_html(html, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
-        raise ServerErrors.translation_failure.with_extra(f"Language: {target}")
+        raise ServerErrors.translation_failure.with_extra("all backends down")
 
     def translate_chapter(
         self,
