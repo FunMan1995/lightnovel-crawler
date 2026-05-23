@@ -242,6 +242,16 @@ class PageSoup:
         """Stripped text content. Always returns a string, never None."""
         return self.get_text(strip=True)
 
+    @text.setter
+    def text(self, value: str) -> None:
+        """Replace inner contents with a text value"""
+        try:
+            if self._tag:
+                self._tag.clear()
+                self._tag.append(value)
+        except Exception:
+            pass
+
     def get_text(self, separator: str = "", strip: bool = True) -> str:
         """Text content with configurable separator and stripping."""
         try:
@@ -250,6 +260,9 @@ class PageSoup:
         except Exception:
             pass
         return ""
+
+    def word_count(self) -> int:
+        return len([word for word in self.get_text().split(" ") if word.strip()])
 
     # ------------------------------------------------------------------ #
     # HTML extraction
