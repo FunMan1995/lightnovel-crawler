@@ -612,7 +612,7 @@ class JobRunner:
             if not self.job.is_running:
                 self.__set_running()
 
-            for done, total in ctx.translations.translate_chapter(
+            for done, total in ctx.translator.translate_chapter(
                 chapter_id,
                 language,
                 signal=self.signal,

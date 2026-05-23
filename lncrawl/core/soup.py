@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup, Tag
 import lxml.etree as etree
 from requests import Response
 
+from ..utils.event_lock import EventLock
+
 
 class PageSoup:
     """Safe wrapper around BeautifulSoup Tag for convenient element operations.
@@ -20,6 +22,7 @@ class PageSoup:
     """
 
     def __init__(self, tag: Optional[Tag] = None):
+        self._lock = EventLock()
         self._tag = tag if isinstance(tag, Tag) else None
 
     def __bool__(self) -> bool:
@@ -247,8 +250,11 @@ class PageSoup:
         """Replace inner contents with a text value"""
         try:
             if self._tag:
-                self._tag.clear()
-                self._tag.append(value)
+                with self._lock:
+                    t = self._tag.copy_self()
+                    t.clear()
+                    t.append(value)
+                    self._tag.replace_with(t)
         except Exception:
             pass
 

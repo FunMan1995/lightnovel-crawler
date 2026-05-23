@@ -140,8 +140,8 @@ class __AppContext__:
         return AnnouncementService()
 
     @cached_property
-    def translations(self):
-        from .services.translations import TranslationService
+    def translator(self):
+        from .services.translators import TranslationService
 
         return TranslationService()
 
@@ -189,7 +189,7 @@ class __AppContext__:
         if "lsp" in self.__dict__:
             self.lsp.stop()
         if "translations" in self.__dict__:
-            self.translations.close()
+            self.translator.close()
 
     def setup(
         self,
