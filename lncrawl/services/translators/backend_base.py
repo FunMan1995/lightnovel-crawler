@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from threading import Event
-from typing import Generator, Iterable, Optional, Tuple, Union
+from typing import Generator, Iterable, Optional, Union
 
 from bs4 import BeautifulSoup, Tag
 
@@ -54,27 +54,23 @@ class BackendBase(ABC):
         html: str,
         target: LanguageCode,
         signal: Optional[Event] = None,
-    ) -> Generator[Union[Tuple[int, int], str], None, None]:
+    ) -> Generator[Union[int, str], None, None]:
         soup = BeautifulSoup(html, "html5lib")
         body = soup.find("body")
         assert body  # type checking
 
         texts = [p.text for p in body.contents]
         total = len(texts)
-        yield (0, total)
+        yield total
 
-        result = []
         translations = self.translate_batch(texts, target, signal)
         for i, t in enumerate(translations):
             elem = body.contents[i]
             if isinstance(elem, Tag):
                 attrs = " ".join([f'{k}="{v}"' for k, v in elem.attrs.values()])
-                result.append(f"<{elem.name}{' ' if attrs else ''}{attrs}>{t}</{elem.name}>")
+                yield f"<{elem.name}{' ' if attrs else ''}{attrs}>{t}</{elem.name}>"
             else:
-                result.append(f"<p>{t}</p>")
-            yield (i + 1, total)
-
-        yield "".join(result)
+                yield f"<p>{t}</p>"
 
 
 class ChunkedBackendBase(BackendBase):

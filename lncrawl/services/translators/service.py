@@ -86,7 +86,7 @@ class TranslationService:
         html: str,
         target: LanguageCode,
         signal: Optional[Event] = None,
-    ) -> Generator[Union[Tuple[int, int], str], None, None]:
+    ) -> Generator[Union[int, str], None, None]:
         for backend in self._available_backends(target):
             try:
                 return backend.translate_html(html, target, signal=signal)
@@ -118,14 +118,22 @@ class TranslationService:
         if row and row.content_hash == content_hash and row.is_available:
             return
 
-        translated: Optional[str] = None
+        done = 0
+        total = 0
+        results = []
         for out in self.translate_html(content, target, signal):
             if isinstance(out, str):
-                translated = out
+                done += 1
+                results.append(out)
             else:
-                yield out
-        if not translated:
-            raise ServerErrors.translation_failure.with_extra("No translated content yielded")
+                done = 0
+                total = out
+                results.clear()
+            yield done, total
+
+        if done != total or not results:
+            raise ServerErrors.translation_failure.with_extra(f"Language: {target}")
+        translated = "".join(results)
 
         with ctx.db.session() as sess:
             if row is None:
