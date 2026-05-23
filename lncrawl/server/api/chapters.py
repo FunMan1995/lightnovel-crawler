@@ -55,7 +55,7 @@ def fetch_chapter(
     user: User = Security(ensure_user),
     chapter_id: str = Path(),
 ) -> Job:
-    job = ctx.jobs.get_chapter_job(chapter_id)
+    job = ctx.jobs.get_chapter_job(user.id, chapter_id)
     if not job:
         job = ctx.jobs.fetch_chapter(user, chapter_id)
     return job
@@ -67,7 +67,7 @@ def translate_chapter(
     chapter_id: str = Path(),
     language: str = Query(description="Target language code, e.g. 'fr', 'zh-CN'"),
 ) -> Job:
-    job = ctx.jobs.get_translation_job(chapter_id, language)
+    job = ctx.jobs.get_translation_job(user.id, chapter_id, language)
     if not job:
         job = ctx.jobs.translate_chapter(user, chapter_id, language)
     return job
