@@ -6,8 +6,8 @@ from bs4 import BeautifulSoup, Tag
 
 from ...core.scraper import Scraper
 from ...core.taskman import TaskManager
+from ...enums import LanguageCode
 from ...utils.event_lock import EventLock
-from .languages import LanguageCode
 
 
 class BackendBase(ABC):

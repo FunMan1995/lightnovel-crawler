@@ -4,8 +4,8 @@ from threading import Event
 import time
 from typing import Iterable, Optional
 
+from ...enums import LanguageCode
 from .backend_base import BackendBase
-from .languages import LanguageCode
 
 logger = logging.getLogger(__name__)
 
@@ -13,22 +13,25 @@ _TOKEN_TTL = 480  # Edge tokens live ~10 minutes; refresh at 8
 
 # https://learn.microsoft.com/en-us/azure/ai-services/translator/language-support
 _LANG_MAP = {
-    LanguageCode.ar: "ar",
-    LanguageCode.bn: "bn",
-    LanguageCode.de: "de",
-    LanguageCode.en: "en",
-    LanguageCode.es: "es",
-    LanguageCode.fr: "fr",
-    LanguageCode.hi: "hi",
-    LanguageCode.id: "id",
-    LanguageCode.ja: "ja",
-    LanguageCode.ko: "ko",
-    LanguageCode.pt: "pt",
-    LanguageCode.ru: "ru",
-    LanguageCode.ur: "ur",
-    LanguageCode.vi: "vi",
-    LanguageCode.zh_cn: "zh-Hans",
-    LanguageCode.zh_tw: "zh-Hant",
+    LanguageCode.arabic: "ar",
+    LanguageCode.bangla: "bn",
+    LanguageCode.german: "de",
+    LanguageCode.english: "en",
+    LanguageCode.spanish: "es",
+    LanguageCode.french: "fr",
+    LanguageCode.hindi: "hi",
+    LanguageCode.indonesian: "id",
+    LanguageCode.japanese: "ja",
+    LanguageCode.korean: "ko",
+    LanguageCode.portuguese: "pt",
+    LanguageCode.russian: "ru",
+    LanguageCode.thai: "th",
+    LanguageCode.turkish: "tr",
+    LanguageCode.urdu: "ur",
+    LanguageCode.vietnamese: "vi",
+    LanguageCode.chinese: "zh",
+    LanguageCode.chinese_simplified: "zh-Hans",
+    LanguageCode.chinese_traditional: "zh-Hant",
 }
 
 

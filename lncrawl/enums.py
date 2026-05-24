@@ -83,3 +83,25 @@ class FeedbackStatus(IntEnum):
     PENDING = 0
     ACCEPTED = 1
     RESOLVED = 2
+
+
+class LanguageCode(str, Enum):
+    arabic = "ar"
+    bangla = "bn"
+    chinese = "zh"
+    chinese_simplified = "zh-cn"
+    chinese_traditional = "zh-tw"
+    english = "en"
+    french = "fr"
+    german = "de"
+    hindi = "hi"
+    indonesian = "id"
+    japanese = "ja"
+    korean = "ko"
+    portuguese = "pt"
+    russian = "ru"
+    spanish = "es"
+    thai = "th"
+    turkish = "tr"
+    urdu = "ur"
+    vietnamese = "vi"

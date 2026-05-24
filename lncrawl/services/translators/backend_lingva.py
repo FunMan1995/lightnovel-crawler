@@ -3,8 +3,9 @@ from threading import Event
 from typing import Optional
 from urllib.parse import quote
 
+from ...enums import LanguageCode
 from .backend_base import ChunkedBackendBase
-from .languages import LanguageCode
+from .backend_google import _LANG_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ class LingvaTranslate(ChunkedBackendBase):
     """Calls Google Mobile translate API internally."""
 
     def is_enabled(self, language: LanguageCode) -> bool:
-        return True  # no API key required
+        return language in _LANG_MAP
 
     def translate(
         self,

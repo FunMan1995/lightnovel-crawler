@@ -5,30 +5,33 @@ from threading import Event
 from typing import Optional
 
 from ...context import ctx
+from ...enums import LanguageCode
 from .backend_base import ChunkedBackendBase
-from .languages import LanguageCode
 
 logger = logging.getLogger(__name__)
 
 # Baidu uses non-standard codes for some languages
 # https://machinetranslate.org/baidu#language-support
 _LANG_MAP = {
-    LanguageCode.ar: "ara",
-    LanguageCode.bn: "ben",
-    LanguageCode.de: "de",
-    LanguageCode.en: "en",
-    LanguageCode.es: "spa",
-    LanguageCode.fr: "fra",
-    LanguageCode.hi: "hin",
-    LanguageCode.id: "ind",
-    LanguageCode.ja: "jpn",
-    LanguageCode.ko: "kor",
-    LanguageCode.pt: "pt-pt",
-    LanguageCode.ru: "ru",
-    LanguageCode.ur: "urd",
-    LanguageCode.vi: "vie",
-    LanguageCode.zh_cn: "zh",
-    LanguageCode.zh_tw: "cht",
+    LanguageCode.arabic: "ara",
+    LanguageCode.bangla: "ben",
+    LanguageCode.german: "de",
+    LanguageCode.english: "en",
+    LanguageCode.spanish: "spa",
+    LanguageCode.french: "fra",
+    LanguageCode.hindi: "hin",
+    LanguageCode.indonesian: "ind",
+    LanguageCode.japanese: "jpn",
+    LanguageCode.korean: "kor",
+    LanguageCode.portuguese: "pt-pt",
+    LanguageCode.russian: "ru",
+    LanguageCode.thai: "tha",
+    LanguageCode.turkish: "tur",
+    LanguageCode.urdu: "urd",
+    LanguageCode.vietnamese: "vie",
+    LanguageCode.chinese: "zh",
+    LanguageCode.chinese_simplified: "zh",
+    LanguageCode.chinese_traditional: "cht",
 }
 
 
