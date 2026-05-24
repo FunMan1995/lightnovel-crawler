@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
-from ...dao import Chapter, ChapterImage, Job, User
+from ...dao import Chapter, ChapterImage, Job, LanguageCode, User
 from ..models import ReadChapterResponse
 from ..security import ensure_user
 
@@ -33,7 +33,7 @@ async def get_chapter_images(
 def read_chapter(
     chapter_id: str = Path(),
     user: User = Security(ensure_user),
-    language: Optional[str] = Query(
+    language: Optional[LanguageCode] = Query(
         default=None,
         description="Target language code, e.g. 'fr', 'zh-CN'",
     ),
@@ -65,9 +65,9 @@ def fetch_chapter(
 def translate_chapter(
     user: User = Security(ensure_user),
     chapter_id: str = Path(),
-    language: str = Query(description="Target language code, e.g. 'fr', 'zh-CN'"),
+    language: LanguageCode = Query(description="Target language code, e.g. 'fr', 'zh-CN'"),
 ) -> Job:
-    job = ctx.jobs.get_translation_job(user.id, chapter_id, language)
+    job = ctx.jobs.get_chapter_translation_job(user.id, chapter_id, language)
     if not job:
         job = ctx.jobs.translate_chapter(user, chapter_id, language)
     return job

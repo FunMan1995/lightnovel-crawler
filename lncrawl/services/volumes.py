@@ -4,7 +4,7 @@ import sqlmodel as sq
 
 from ..context import ctx
 from ..core import Volume as CrawlerVolume
-from ..dao import User, UserRole, Volume
+from ..dao import LanguageCode, User, UserRole, Volume, VolumeTranslation
 from ..exceptions import ServerErrors
 
 
@@ -60,6 +60,18 @@ class VolumeService:
             if not volume:
                 raise ServerErrors.no_such_volume
             return volume
+
+    def get_volume_translation(self, volume: Volume, language: LanguageCode):
+        with ctx.db.session() as sess:
+            return sess.exec(
+                sq.select(VolumeTranslation)
+                .where(
+                    VolumeTranslation.novel_id == volume.novel_id,
+                    VolumeTranslation.volume_serial == volume.serial,
+                    VolumeTranslation.language == language,
+                )
+                .limit(1)
+            ).first()
 
     def sync(self, novel_id: str, volumes: List[CrawlerVolume]):
         with ctx.db.session() as sess:

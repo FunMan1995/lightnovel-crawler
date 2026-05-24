@@ -20,13 +20,13 @@ SLOT_TIMEOUT_IN_SECOND = {
 }
 
 ENABLED_FORMATS = {
-    UserTier.BASIC: set(
+    UserTier.BASIC: frozenset(
         [
             OutputFormat.json,
             OutputFormat.epub,
         ]
     ),
-    UserTier.PREMIUM: set(
+    UserTier.PREMIUM: frozenset(
         [
             OutputFormat.json,
             OutputFormat.epub,
@@ -40,5 +40,5 @@ ENABLED_FORMATS = {
             OutputFormat.tcr,
         ]
     ),
-    UserTier.VIP: set(OutputFormat),
+    UserTier.VIP: frozenset(OutputFormat),
 }

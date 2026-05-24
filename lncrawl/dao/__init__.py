@@ -11,12 +11,12 @@ from .chapter_image import ChapterImage
 from .feedback import Feedback
 from .job import Job
 from .library import Library, LibraryNovel
-from .novel import Novel
+from .novel import Novel, NovelTranslation
 from .read_history import ReadHistory
 from .secrets import Secret
 from .tag import Tag
 from .user import User, UserToken
-from .volume import Volume
+from .volume import Volume, VolumeTranslation
 
 models: List[Type[SQLModel]] = [
     User,
@@ -25,7 +25,9 @@ models: List[Type[SQLModel]] = [
     Library,
     LibraryNovel,
     Novel,
+    NovelTranslation,
     Volume,
+    VolumeTranslation,
     Chapter,
     ChapterTranslation,
     ChapterImage,

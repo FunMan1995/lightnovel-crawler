@@ -16,6 +16,9 @@ _lock = EventLock()
 _queue: Dict[str, Event] = {}
 _users: Dict[str, str] = {}
 
+_ALL_OUTPUT_FORMATS = frozenset(OutputFormat)
+_ALL_NOTIFICATION_ITEMS = frozenset(NotificationItem)
+
 
 class JobRunner:
     @staticmethod
@@ -112,10 +115,22 @@ class JobRunner:
             return self._artifact_batch()
         if self.job.type == JobType.ARTIFACT:
             return self._artifact()
-        if self.job.type == JobType.TRANSLATION_BATCH:
-            return self._translation_batch()
-        if self.job.type == JobType.TRANSLATION:
-            return self._translation()
+        if self.job.type == JobType.NOVEL_TRANSLATION_BATCH:
+            return self._novel_translation_batch()
+        if self.job.type == JobType.FULL_NOVEL_TRANSLATION_BATCH:
+            return self._novel_translation_batch()
+        if self.job.type == JobType.NOVEL_TRANSLATION:
+            return self._novel_translation()
+        if self.job.type == JobType.FULL_NOVEL_TRANSLATION:
+            return self._novel_translation()
+        if self.job.type == JobType.VOLUME_TRANSLATION_BATCH:
+            return self._volume_translation_batch()
+        if self.job.type == JobType.VOLUME_TRANSLATION:
+            return self._volume_translation()
+        if self.job.type == JobType.CHAPTER_TRANSLATION_BATCH:
+            return self._chapter_translation_batch()
+        if self.job.type == JobType.CHAPTER_TRANSLATION:
+            return self._chapter_translation()
 
         return self.__set_done(f"Job type is not supported: [b]{self.job.type}[/b]")
 
@@ -195,7 +210,7 @@ class JobRunner:
             return runner.__send_mail()
 
         alert_items: Set[NotificationItem] = set()
-        all_notifications = set(NotificationItem)
+        all_notifications = _ALL_NOTIFICATION_ITEMS
         email_alerts = self.user.extra.get("email_alerts") or {}
         email_sent = set(self.job.extra.get("email_sent") or [])
         for k, v in email_alerts.items():
@@ -566,7 +581,7 @@ class JobRunner:
         except Exception as e:
             return self.__set_done("Failed to create requests", e)
 
-    def _translation_batch(self) -> bool:
+    def _chapter_translation_batch(self) -> bool:
         try:
             chapter_ids = self.job.extra.get("chapter_ids")
             if not chapter_ids:
@@ -599,7 +614,7 @@ class JobRunner:
         except Exception as e:
             return self.__set_done("Failed to create translation requests", e)
 
-    def _translation(self) -> bool:
+    def _chapter_translation(self) -> bool:
         try:
             chapter_id = self.job.extra.get("chapter_id")
             if not chapter_id:
@@ -629,6 +644,158 @@ class JobRunner:
         except Exception as e:
             return self.__set_done("Failed to translate chapter", e)
 
+    def _novel_translation_batch(self) -> bool:
+        try:
+            novel_ids = self.job.extra.get("novel_ids")
+            if not novel_ids:
+                return self.__set_done()
+
+            language = self.job.extra.get("language")
+            if not language:
+                return self.__set_done("No target language")
+
+            full = self.job.type == JobType.FULL_NOVEL_TRANSLATION_BATCH
+            novel_ids = set(novel_ids)
+            if self.job.is_running:
+                novel_ids -= set([job.extra.get("novel_id") for job in self.children])
+            else:
+                self.__set_running()
+
+            for novel_id in novel_ids:
+                if self.signal.is_set():
+                    raise AbortedException()
+                ctx.jobs.translate_novel(
+                    self.user,
+                    novel_id,
+                    language,
+                    full=full,
+                    parent_id=self.job.id,
+                )
+
+            return self.__increment()
+        except AbortedException:
+            return False
+        except Exception as e:
+            return self.__set_done("Failed to create translation requests", e)
+
+    def _novel_translation(self) -> bool:
+        try:
+            novel_id = self.job.extra.get("novel_id")
+            if not novel_id:
+                return self.__set_done("No novel id")
+
+            language = self.job.extra.get("language")
+            if not language:
+                return self.__set_done("No target language")
+
+            added_types = {}
+            if self.job.is_running:
+                added_types = {job.type: job.id for job in self.children}
+            else:
+                self.__set_running()
+
+            novel = ctx.novels.get(novel_id)
+            for done, total in ctx.translator.translate_novel(novel, language, self.signal):
+                with ctx.db.session() as sess:
+                    ctx.jobs._update(sess, self.job.id, done=done, total=total)
+                    sess.commit()
+                self.job.done = done
+                self.job.total = total
+
+            if self.job.type == JobType.NOVEL_TRANSLATION:
+                return self.__set_done()
+
+            if JobType.VOLUME_TRANSLATION_BATCH not in added_types:
+                volumes = ctx.volumes.list(novel_id=novel_id)
+                if not volumes:
+                    return self.__set_done()
+
+                ctx.jobs.translate_many_volumes(
+                    self.user,
+                    *(volume.id for volume in volumes),
+                    language=language,
+                    parent_id=self.job.id,
+                    novel_id=novel_id,
+                    novel_title=novel.title,
+                )
+
+            return self.__increment()
+        except AbortedException:
+            return False
+        except Exception as e:
+            return self.__set_done("Failed to translate novel", e)
+
+    def _volume_translation_batch(self) -> bool:
+        try:
+            volume_ids = self.job.extra.get("volume_ids")
+            if not volume_ids:
+                return self.__set_done()
+
+            language = self.job.extra.get("language")
+            if not language:
+                return self.__set_done("No target language")
+
+            volume_ids = set(volume_ids)
+            if self.job.is_running:
+                volume_ids -= set([job.extra.get("volume_id") for job in self.children])
+            else:
+                self.__set_running()
+
+            for volume_id in volume_ids:
+                if self.signal.is_set():
+                    raise AbortedException()
+                ctx.jobs.translate_volume(
+                    self.user,
+                    volume_id,
+                    language,
+                    parent_id=self.job.id,
+                    novel_title=self.job.extra.get("novel_title"),
+                )
+
+            return self.__increment()
+        except AbortedException:
+            return False
+        except Exception as e:
+            return self.__set_done("Failed to create translation requests", e)
+
+    def _volume_translation(self) -> bool:
+        try:
+            volume_id = self.job.extra.get("volume_id")
+            if not volume_id:
+                return self.__set_done("No volume id")
+
+            language = self.job.extra.get("language")
+            if not language:
+                return self.__set_done("No target language")
+
+            added_types = {}
+            if self.job.is_running:
+                added_types = {job.type: job.id for job in self.children}
+            else:
+                self.__set_running()
+
+            volume = ctx.volumes.get(volume_id)
+            ctx.translator.translate_volume(volume, language, self.signal)
+
+            if JobType.CHAPTER_TRANSLATION_BATCH not in added_types:
+                chapters = ctx.chapters.list(volume_id=volume_id)
+                if not chapters:
+                    return self.__set_done()
+
+                ctx.jobs.translate_many_chapters(
+                    self.user,
+                    *(chapter.id for chapter in chapters),
+                    language=language,
+                    parent_id=self.job.id,
+                    novel_title=self.job.extra.get("novel_title"),
+                )
+
+            return self.__increment()
+        except AbortedException:
+            return False
+        except Exception as e:
+            return self.__set_done("Failed to translate volume", e)
+
     def _artifact(self) -> bool:
         try:
             novel_id = self.job.extra.get("novel_id")
@@ -639,7 +806,7 @@ class JobRunner:
             if not format:
                 return self.__set_done("No output format")
 
-            if format not in set(OutputFormat):
+            if format not in _ALL_OUTPUT_FORMATS:
                 return self.__set_done(f"Invalid format: {format}")
 
             if not self.job.is_running:

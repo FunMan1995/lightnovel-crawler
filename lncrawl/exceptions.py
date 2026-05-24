@@ -134,6 +134,9 @@ class ServerErrors:
     no_chapters_to_download = ServerError(
         status.HTTP_422_UNPROCESSABLE_CONTENT, "No chapters to download"
     )
+    no_novels_to_download = ServerError(
+        status.HTTP_422_UNPROCESSABLE_CONTENT, "No novels to download"
+    )
     no_volumes_to_download = ServerError(
         status.HTTP_422_UNPROCESSABLE_CONTENT, "No volumes to download"
     )

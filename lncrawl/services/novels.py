@@ -1,10 +1,10 @@
 import shutil
 from typing import Any, Dict, List, Optional
 
-import sqlmodel as sa
+import sqlmodel as sq
 
 from ..context import ctx
-from ..dao import Novel
+from ..dao import LanguageCode, Novel, NovelTranslation
 from ..exceptions import ServerErrors
 from ..server.models import Paginated
 
@@ -21,25 +21,25 @@ class NovelService:
         domain: str = "",
     ) -> Paginated[Novel]:
         with ctx.db.session() as sess:
-            stmt = sa.select(Novel)
-            cnt = sa.select(sa.func.count()).select_from(Novel)
+            stmt = sq.select(Novel)
+            cnt = sq.select(sq.func.count()).select_from(Novel)
 
             # Apply filters
             conditions: List[Any] = []
 
             if domain:
-                conditions.append(sa.col(Novel.url).ilike(f"%{domain}%"))
+                conditions.append(sq.col(Novel.url).ilike(f"%{domain}%"))
 
             if search:
-                conditions.append(sa.col(Novel.title).ilike(f"%{search}%"))
+                conditions.append(sq.col(Novel.title).ilike(f"%{search}%"))
 
             if conditions:
-                cnd = sa.and_(*conditions)
+                cnd = sq.and_(*conditions)
                 stmt = stmt.where(cnd)
                 cnt = cnt.where(cnd)
 
             # Apply sorting
-            stmt = stmt.order_by(sa.desc(Novel.updated_at))
+            stmt = stmt.order_by(sq.desc(Novel.updated_at))
 
             # Apply pagination
             stmt = stmt.offset(offset).limit(limit)
@@ -57,9 +57,9 @@ class NovelService:
     def list_domains(self) -> Dict[str, int]:
         with ctx.db.session() as sess:
             domains = sess.exec(
-                sa.select(
+                sq.select(
                     Novel.domain,
-                    sa.func.count(sa.col(Novel.id)).label("total_novels"),
+                    sq.func.count(sq.col(Novel.id)).label("total_novels"),
                 ).group_by(Novel.domain)
             ).all()
         return {domain: total_novels for domain, total_novels in domains}
@@ -70,6 +70,17 @@ class NovelService:
             if not novel:
                 raise ServerErrors.no_such_novel
             return novel
+
+    def get_novel_translation(self, novel: Novel, language: LanguageCode):
+        with ctx.db.session() as sess:
+            return sess.exec(
+                sq.select(NovelTranslation)
+                .where(
+                    NovelTranslation.novel_id == novel.id,
+                    NovelTranslation.language == language,
+                )
+                .limit(1)
+            ).first()
 
     def delete(self, novel_id: str) -> bool:
         novel_dir = ctx.files.resolve(f"novels/{novel_id}")
@@ -84,4 +95,4 @@ class NovelService:
 
     def find_by_url(self, novel_url: str) -> Optional[Novel]:
         with ctx.db.session() as sess:
-            return sess.exec(sa.select(Novel).where(Novel.url == novel_url)).first()
+            return sess.exec(sq.select(Novel).where(Novel.url == novel_url)).first()

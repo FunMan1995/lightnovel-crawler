@@ -7,7 +7,7 @@ from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 import sqlmodel as sq
 
 from ...context import ctx
-from ...dao import Chapter, ChapterTranslation
+from ...dao import Chapter, ChapterTranslation, Novel, NovelTranslation, Volume, VolumeTranslation
 from ...enums import LanguageCode
 from ...exceptions import ServerErrors
 from .backend_baidu import BaiduTranslate
@@ -97,24 +97,91 @@ class TranslationService:
                 self._on_backend_error(backend, e)
         raise ServerErrors.translation_failure.with_extra("all backends down")
 
+    def translate_novel(
+        self,
+        novel: Novel,
+        target: LanguageCode,
+        signal: Optional[Event] = None,
+    ):
+        translation = ctx.novels.get_novel_translation(novel, target)
+        if translation:
+            return
+
+        texts = [
+            novel.title,
+            novel.authors or "",
+            "; ".join(novel.tags),
+        ]
+
+        done = 0
+        total = 3
+        translated: List[str] = [""] * 4
+        if novel.synopsis:
+            synopsis: List[str] = []
+            for out in self.translate_html(novel.synopsis, target, signal):
+                if isinstance(out, int):
+                    done = 0
+                    synopsis = []
+                    total = 3 + out
+                else:
+                    done += 1
+                    synopsis.append(out)
+                yield done, total
+            translated[0] = "".join(synopsis)
+
+        for i, out in enumerate(self.translate_batch(texts, target, signal)):
+            done += 1
+            translated[i + 1] = out
+            yield done, total
+
+        tags = translated[3].split("; ")
+        if tags:
+            ctx.tags.insert(tags)
+
+        with ctx.db.session() as sess:
+            translation = NovelTranslation(
+                novel_id=novel.id,
+                language=target,
+                synopsis=translated[0],
+                title=translated[1],
+                authors=translated[2],
+                tags=tags,
+            )
+            sess.add(translation)
+            sess.commit()
+
+    def translate_volume(
+        self,
+        volume: Volume,
+        target: LanguageCode,
+        signal: Optional[Event] = None,
+    ):
+        translation = ctx.volumes.get_volume_translation(volume, target)
+        if translation:
+            return
+
+        title = self.translate_text(volume.title, target, signal)
+        with ctx.db.session() as sess:
+            translation = VolumeTranslation(
+                novel_id=volume.novel_id,
+                volume_serial=volume.serial,
+                language=target,
+                volume_title=title,
+            )
+            sess.add(translation)
+            sess.commit()
+
     def translate_chapter(
         self,
         chapter: Chapter,
         target: LanguageCode,
         signal: Optional[Event] = None,
     ) -> Generator[Tuple[int, int], None, None]:
-        with ctx.db.session() as sess:
-            row = sess.exec(
-                sq.select(ChapterTranslation).where(
-                    ChapterTranslation.novel_id == chapter.novel_id,
-                    ChapterTranslation.chapter_serial == chapter.serial,
-                    ChapterTranslation.language == target,
-                )
-            ).first()
+        translation = ctx.chapters.get_chapter_translation(chapter, target)
 
         content = ctx.files.load_text(chapter.content_file)
         content_hash = sha256(content.encode()).hexdigest()
-        if row and row.content_hash == content_hash and row.is_available:
+        if translation and translation.content_hash == content_hash and translation.is_available:
             yield 1, 1
             return
 
@@ -133,21 +200,24 @@ class TranslationService:
         yield total, total
 
         with ctx.db.session() as sess:
-            if row is None:
-                row = ChapterTranslation(
+            if not translation:
+                translation = ChapterTranslation(
                     novel_id=chapter.novel_id,
                     chapter_serial=chapter.serial,
                     language=target,
                     chapter_title=title,
                     content_hash=content_hash,
                 )
-                sess.add(row)
+                sess.add(translation)
             else:
                 sess.exec(
                     sq.update(ChapterTranslation)
-                    .where(sq.col(ChapterTranslation.id) == row.id)
-                    .values(chapter_title=title, content_hash=content_hash)
+                    .where(sq.col(ChapterTranslation.id) == translation.id)
+                    .values(
+                        chapter_title=title,
+                        content_hash=content_hash,
+                    )
                 )
             sess.commit()
 
-        ctx.files.save_text(row.translation_file, translated)
+        ctx.files.save_text(translation.translation_file, translated)

@@ -4,7 +4,7 @@ import sqlmodel as sq
 
 from ..context import ctx
 from ..core import Chapter as CrawlerChapter, PageSoup
-from ..dao import Chapter, Job, User, UserTier, Volume
+from ..dao import Chapter, Job, LanguageCode, User, UserTier, Volume
 from ..dao.chapter import ChapterTranslation
 from ..exceptions import ServerErrors
 from ..server.models import Paginated, ReadChapterResponse
@@ -132,7 +132,7 @@ class ChapterService:
             sess.delete(chapter)
             sess.commit()
 
-    def get_chapter_translation(self, chapter: Chapter, language: str):
+    def get_chapter_translation(self, chapter: Chapter, language: LanguageCode):
         with ctx.db.session() as sess:
             return sess.exec(
                 sq.select(ChapterTranslation)
@@ -148,11 +148,12 @@ class ChapterService:
         self,
         user: User,
         chapter_id: str,
-        language: Optional[str] = None,
+        *,
         auto_fetch: Optional[bool] = None,
+        language: Optional[LanguageCode] = None,
     ) -> ReadChapterResponse:
         if auto_fetch is None:
-            auto_fetch = user.tier != UserTier.BASIC
+            auto_fetch = user.tier == UserTier.VIP
 
         chapter = self.get(chapter_id)
         novel = ctx.novels.get(chapter.novel_id)
@@ -188,7 +189,7 @@ class ChapterService:
                 content = ctx.files.load_text(translation.translation_file)
             elif auto_fetch:
                 fetch_job_id = job.id if job else None
-                translate_job = ctx.jobs.get_translation_job(user.id, chapter_id, language)
+                translate_job = ctx.jobs.get_chapter_translation_job(user.id, chapter_id, language)
                 if not translate_job:
                     translate_job = ctx.jobs.translate_chapter(
                         user, chapter_id, language, depends_on=fetch_job_id
