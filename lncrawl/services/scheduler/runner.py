@@ -609,14 +609,14 @@ class JobRunner:
             if not language:
                 return self.__set_done("No target language")
 
+            chapter = ctx.chapters.get(chapter_id)
+            if not chapter.is_available:
+                return self.__set_done("No chapter content")
+
             if not self.job.is_running:
                 self.__set_running()
 
-            for done, total in ctx.translator.translate_chapter(
-                chapter_id,
-                language,
-                signal=self.signal,
-            ):
+            for done, total in ctx.translator.translate_chapter(chapter, language, self.signal):
                 with ctx.db.session() as sess:
                     ctx.jobs._update(sess, self.job.id, done=done, total=total)
                     sess.commit()

@@ -21,6 +21,10 @@ class BackendBase(ABC):
         self.scraper = Scraper()
         self.taskman = TaskManager(max_workers, ratelimit)
 
+    @property
+    def name(self):
+        return self.__class__.__name__
+
     def close(self):
         self.lock.abort()
         self.scraper.close()

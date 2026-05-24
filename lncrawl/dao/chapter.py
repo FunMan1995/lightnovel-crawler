@@ -47,12 +47,14 @@ class Chapter(BaseTable, table=True):
 class ChapterTranslation(BaseTable, table=True):
     __tablename__ = "chapter_translations"  # type: ignore
     __table_args__ = (
+        sa.UniqueConstraint("novel_id", "chapter_serial", "language"),
         sa.Index("ix_chapter_translation_lookup", "novel_id", "chapter_serial", "language"),
     )
 
     novel_id: str = sa.Field(foreign_key="novels.id", ondelete="CASCADE")
     chapter_serial: int = sa.Field(description="Chapter serial number within the novel")
     language: str = sa.Field(description="Target language code, e.g. 'fr'")
+    chapter_title: str = sa.Field(description="Translated title of the chapter")
     content_hash: str = sa.Field(description="SHA256 of original content for cache invalidation")
 
     @computed_field  # type: ignore[misc]

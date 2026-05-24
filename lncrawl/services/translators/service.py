@@ -7,7 +7,7 @@ from typing import Dict, Generator, Iterable, List, Optional, Tuple, Union
 import sqlmodel as sq
 
 from ...context import ctx
-from ...dao.chapter import ChapterTranslation
+from ...dao import Chapter, ChapterTranslation
 from ...enums import LanguageCode
 from ...exceptions import ServerErrors
 from .backend_baidu import BaiduTranslate
@@ -52,7 +52,7 @@ class TranslationService:
         message = f"{repr(backend)} failed: {':'.join(str(e).split(':')[:2])}"
         logger.info(message, exc_info=ctx.logger.is_debug)
         if "429 Client Error" in message:
-            logger.warning(f"Disabling '{backend!r}' to avoid 429 error")
+            logger.warning(f"Disabling '{backend.name}' to avoid 429 error")
             self._failing[backend] = time.monotonic()
 
     def translate_text(
@@ -63,7 +63,7 @@ class TranslationService:
     ) -> str:
         for backend in self._available_backends(target):
             try:
-                logger.info(f"Using {backend!r} for Text ({target})")
+                logger.info(f"Using {backend.name} for Text ({target})")
                 return backend.translate(text, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
@@ -77,7 +77,7 @@ class TranslationService:
     ) -> Iterable[str]:
         for backend in self._available_backends(target):
             try:
-                logger.info(f"Using {backend!r} for Batch Text ({target})")
+                logger.info(f"Using {backend.name} for Batch Text ({target})")
                 return backend.translate_batch(text, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
@@ -91,7 +91,7 @@ class TranslationService:
     ) -> Generator[Union[int, str], None, None]:
         for backend in self._available_backends(target):
             try:
-                logger.info(f"Using {backend!r} for HTML ({target})")
+                logger.info(f"Using {backend.name} for HTML ({target})")
                 return backend.translate_html(html, target, signal=signal)
             except Exception as e:
                 self._on_backend_error(backend, e)
@@ -99,14 +99,10 @@ class TranslationService:
 
     def translate_chapter(
         self,
-        chapter_id: str,
+        chapter: Chapter,
         target: LanguageCode,
         signal: Optional[Event] = None,
     ) -> Generator[Tuple[int, int], None, None]:
-        chapter = ctx.chapters.get(chapter_id)
-        if not chapter.is_available:
-            raise ServerErrors.no_such_file
-
         with ctx.db.session() as sess:
             row = sess.exec(
                 sq.select(ChapterTranslation).where(
@@ -119,18 +115,22 @@ class TranslationService:
         content = ctx.files.load_text(chapter.content_file)
         content_hash = sha256(content.encode()).hexdigest()
         if row and row.content_hash == content_hash and row.is_available:
+            yield 1, 1
             return
 
-        total = 0
+        total = 1
         results = []
         for out in self.translate_html(content, target, signal):
             if isinstance(out, str):
                 results.append(out)
             else:
-                total = out
+                total = out + 1
                 results.clear()
             yield len(results), total
         translated = "".join(results)
+
+        title = self.translate_text(chapter.title, target)
+        yield total, total
 
         with ctx.db.session() as sess:
             if row is None:
@@ -138,12 +138,16 @@ class TranslationService:
                     novel_id=chapter.novel_id,
                     chapter_serial=chapter.serial,
                     language=target,
+                    chapter_title=title,
                     content_hash=content_hash,
                 )
                 sess.add(row)
             else:
-                row.content_hash = content_hash
-                sess.merge(row)
+                sess.exec(
+                    sq.update(ChapterTranslation)
+                    .where(sq.col(ChapterTranslation.id) == row.id)
+                    .values(chapter_title=title, content_hash=content_hash)
+                )
             sess.commit()
 
         ctx.files.save_text(row.translation_file, translated)

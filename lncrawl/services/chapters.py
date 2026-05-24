@@ -151,10 +151,12 @@ class ChapterService:
         language: Optional[str] = None,
         auto_fetch: Optional[bool] = None,
     ) -> ReadChapterResponse:
-        chapter = self.get(chapter_id)
-        novel = ctx.novels.get(chapter.novel_id)
         if auto_fetch is None:
             auto_fetch = user.tier != UserTier.BASIC
+
+        chapter = self.get(chapter_id)
+        novel = ctx.novels.get(chapter.novel_id)
+        ctx.history.add(user.id, chapter.id)
 
         with ctx.db.session() as sess:
             previous_id = sess.exec(
@@ -170,27 +172,31 @@ class ChapterService:
                 .limit(1)
             ).first()
 
-        ctx.history.add(user.id, chapter.id)
-
         job: Optional[Job] = None
         content: Optional[str] = None
-        word_count: Optional[int] = None
         if chapter.is_available:
-            if language:
-                translation = self.get_chapter_translation(chapter, language)
-                if translation and translation.is_available:
-                    content = ctx.files.load_text(translation.translation_file)
-                elif auto_fetch:
-                    job = ctx.jobs.get_translation_job(user.id, chapter_id, language)
-                    if not job:
-                        job = ctx.jobs.translate_chapter(user, chapter_id, language)
-            else:
-                content = ctx.files.load_text(chapter.content_file)
+            content = ctx.files.load_text(chapter.content_file)
         elif auto_fetch:
             job = ctx.jobs.get_chapter_job(user.id, chapter_id)
             if not job:
                 job = ctx.jobs.fetch_chapter(user, chapter_id)
 
+        if language:
+            translation = self.get_chapter_translation(chapter, language)
+            if translation and translation.is_available:
+                chapter.title = translation.chapter_title or chapter.title
+                content = ctx.files.load_text(translation.translation_file)
+            elif auto_fetch:
+                fetch_job_id = job.id if job else None
+                translate_job = ctx.jobs.get_translation_job(user.id, chapter_id, language)
+                if not translate_job:
+                    translate_job = ctx.jobs.translate_chapter(
+                        user, chapter_id, language, depends_on=fetch_job_id
+                    )
+                if not job or job.is_done:
+                    job = translate_job
+
+        word_count: Optional[int] = None
         if content:
             word_count = PageSoup.create(content).word_count()
 
