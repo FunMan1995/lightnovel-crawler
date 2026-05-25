@@ -156,7 +156,10 @@ def fetch_images(
 
 
 @router.post("/create/make-artifacts", summary="Create a job to make novel artifacts")
-def make_artifacts(user: User = Security(ensure_user), body: MakeArtifactsRequest = Body()) -> Job:
+def make_artifacts(
+    user: User = Security(ensure_user),
+    body: MakeArtifactsRequest = Body(),
+) -> Job:
     formats = set(body.formats) & ENABLED_FORMATS[user.tier]
     if len(formats) == 0:
         raise ServerErrors.no_artifacts_to_create

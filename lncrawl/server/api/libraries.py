@@ -53,7 +53,9 @@ def list_my_libraries(
     "/my/list",
     summary="Get library name suggestions",
 )
-def all_my_libraries(user: User = Security(ensure_user)) -> List[LibraryItem]:
+def all_my_libraries(
+    user: User = Security(ensure_user),
+) -> List[LibraryItem]:
     return ctx.libraries.list_all(user.id)
 
 

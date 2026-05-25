@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Body, Depends, Path, Query, Security
+from fastapi import APIRouter, Body, Path, Query, Security
 
 from ...context import ctx
 from ...dao import Announcement, User
@@ -15,7 +15,11 @@ def list_active() -> List[Announcement]:
     return ctx.announcements.list_active()
 
 
-@router.get("", summary="List all announcements (admin)", dependencies=[Depends(ensure_admin)])
+@router.get(
+    "",
+    summary="List all announcements (admin)",
+    dependencies=[Security(ensure_admin)],
+)
 def list_all(
     offset: int = Query(default=0),
     limit: int = Query(default=50, le=100),
@@ -23,9 +27,9 @@ def list_all(
     return ctx.announcements.list_all(offset=offset, limit=limit)
 
 
-@router.post("", summary="Create announcement", dependencies=[Depends(ensure_admin)])
+@router.post("", summary="Create announcement")
 def create_announcement(
-    user: User = Security(ensure_user),
+    user: User = Security(ensure_admin),
     body: AnnouncementCreateRequest = Body(...),
 ) -> Announcement:
     return ctx.announcements.create(
@@ -37,7 +41,9 @@ def create_announcement(
 
 
 @router.patch(
-    "/{announcement_id}", summary="Update announcement", dependencies=[Depends(ensure_admin)]
+    "/{announcement_id}",
+    summary="Update announcement",
+    dependencies=[Security(ensure_admin)],
 )
 def update_announcement(
     announcement_id: str = Path(),
@@ -54,7 +60,9 @@ def update_announcement(
 
 
 @router.delete(
-    "/{announcement_id}", summary="Delete announcement", dependencies=[Depends(ensure_admin)]
+    "/{announcement_id}",
+    summary="Delete announcement",
+    dependencies=[Security(ensure_admin)],
 )
 def delete_announcement(
     announcement_id: str = Path(),

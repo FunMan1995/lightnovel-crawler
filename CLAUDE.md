@@ -71,7 +71,7 @@ Both share a single in-process `AppContext` (`ctx`) singleton; nothing is meant 
 
 [lncrawl/context.py](lncrawl/context.py) defines `__AppContext__` and exports `ctx`. Every service is a `@cached_property`, so imports are deferred and a service is only constructed on first access. `ctx.setup()` boots the logger, config, DB (with Alembic migrations), creates the admin user, and loads sources. `ctx.destroy()` is registered with Typer's `call_on_close`. **Always reach shared state via `ctx.<service>`** — do not instantiate service classes directly.
 
-Important services (from `ctx`): `config`, `logger`, `db`, `mail`, `http`, `files`, `sources`, `users`, `novels`, `tags`, `secrets`, `volumes`, `chapters`, `images`, `artifacts`, `jobs`, `history`, `libraries`, `feedback`, `announcements`, `crawler`, `binder`, `scheduler`, `admin`.
+Important services (from `ctx`): `config`, `logger`, `db`, `mail`, `http`, `files`, `sources`, `users`, `novels`, `tags`, `secrets`, `volumes`, `chapters`, `images`, `artifacts`, `jobs`, `history`, `libraries`, `feedback`, `announcements`, `translator`, `crawler`, `binder`, `lsp`, `scheduler`, `admin`, `github`.
 
 ### Source crawlers (the scraping layer)
 
@@ -83,23 +83,27 @@ Important services (from `ctx`): `config`, `logger`, `db`, `mail`, `http`, `file
 
 ### Persistence layer
 
-- ORM: SQLModel/SQLAlchemy. Models in [lncrawl/dao/](lncrawl/dao/) (`Job`, `Novel`, `Chapter`, `Volume`, `User`, `Library`, `Artifact`, `ReadHistory`, `Tag`, `Feedback`, `Announcement`, `Secret`, `ChapterImage`, `enums.py`).
+- ORM: SQLModel/SQLAlchemy. Models in [lncrawl/dao/](lncrawl/dao/): `User`, `UserToken`, `Novel`, `NovelTranslation`, `Volume`, `VolumeTranslation`, `Chapter`, `ChapterTranslation`, `ChapterImage`, `Library`, `LibraryNovel`, `Artifact`, `Job`, `ReadHistory`, `Tag`, `Feedback`, `Announcement`, `Secret`. Enums live in [lncrawl/enums.py](lncrawl/enums.py) and are re-exported via `dao/__init__.py`.
 - DB engine: [lncrawl/services/db.py](lncrawl/services/db.py). URL comes from `ctx.config.db.url`; defaults to local SQLite, supports PostgreSQL via `DATABASE_URL`.
 - Migrations: [lncrawl/migrations/](lncrawl/migrations/) (Alembic). `ctx.db.bootstrap()` runs migrations on startup.
 
 ### Background work: jobs + scheduler
 
-- [lncrawl/services/jobs/](lncrawl/services/jobs/) — `JobService` is the persistence/query API for `Job` rows; `events.py` is a tiny in-process pub/sub bridging worker threads to FastAPI's asyncio loop via `loop.call_soon_threadsafe`.
+- [lncrawl/services/jobs/](lncrawl/services/jobs/) — `JobService` is the persistence/query API for `Job` rows.
 - [lncrawl/services/scheduler/](lncrawl/services/scheduler/) — `JobScheduler` (started in FastAPI `lifespan`) spawns worker threads: `JobRunner` runs novel-fetching/downloading jobs, `Scrubber` performs cleanup. Concurrency comes from `ctx.config.crawler.runner_concurrency`.
-- Live job updates flow over WebSocket via [lncrawl/server/api/ws.py](lncrawl/server/api/ws.py).
+- Job status is polled via the REST API; there is no dedicated job WebSocket. The only WebSocket endpoint (`/api/lsp`) is the Language Server Protocol proxy (`ctx.lsp`) — it spawns a per-session `pylsp` subprocess and relays JSON-RPC over TCP.
 
 ### Output / binding
 
 [lncrawl/services/binder/](lncrawl/services/binder/) generates artifacts. EPUB is the native format (`epub.py`); other formats (MOBI, PDF, AZW3, DOCX, FB2, …) are produced by shelling out to Calibre's `ebook-convert` (`calibre.py`); `json.py` and `text.py` are dependency-free outputs.
 
+[lncrawl/services/translators/](lncrawl/services/translators/) (`ctx.translator`) machine-translates novel content (chapters, volumes, titles) into a target language. Wraps multiple backends — Bing, Google (three variants), Lingva, Baidu — with automatic failover when a backend fails. Translation results are stored as `*Translation` DAO rows alongside the originals.
+
+[lncrawl/services/github.py](lncrawl/services/github.py) (`ctx.github`) fetches and caches the remote source index from GitHub (throttled to one fetch per 60 s) and supports downloading individual source files into `user_sources` or submitting new crawlers as GitHub PRs.
+
 ### Server API
 
-Routers live in [lncrawl/server/api/](lncrawl/server/api/) and are aggregated in [lncrawl/server/api/__init__.py](lncrawl/server/api/__init__.py). Auth is enforced per-router via `Depends(ensure_user)` / `Depends(ensure_admin)` from [lncrawl/server/security.py](lncrawl/server/security.py); WebSocket routers handle their own auth and are mounted **before** the HTTP routers so they don't inherit HTTP security deps. Tier/quota logic in [lncrawl/server/tier.py](lncrawl/server/tier.py).
+Routers live in [lncrawl/server/api/](lncrawl/server/api/) and are aggregated in [lncrawl/server/api/__init__.py](lncrawl/server/api/__init__.py). Auth is enforced per-router via `Security(ensure_user)` / `Security(ensure_admin)` / `Security(ensure_local)` from [lncrawl/server/security.py](lncrawl/server/security.py). `ensure_admin` requires `UserRole.ADMIN`; `ensure_local` requires the `LOCAL` scope token but still checks `role == ADMIN` at runtime (it is scoped for local-process callers that skip normal auth). The `lsp` WebSocket router handles its own auth (token query param) and is mounted **before** the HTTP routers so it doesn't inherit HTTP security deps. The `/settings` router carries per-user notification preferences. Tier/quota logic in [lncrawl/server/tier.py](lncrawl/server/tier.py).
 
 Pydantic request/response models live in [lncrawl/server/models/](lncrawl/server/models/), distinct from the SQLModel persistence models in `dao/`.
 
