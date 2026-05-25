@@ -9,7 +9,6 @@ from .feedback import (
 from .job import (
     FetchChaptersRequest,
     FetchImagesRequest,
-    FetchNovelRequest,
     FetchNovelsRequest,
     FetchVolumesRequest,
     MakeArtifactsRequest,
@@ -62,7 +61,6 @@ __all__ = [
     # crawler
     "LoginData",
     # job
-    "FetchNovelRequest",
     "FetchNovelsRequest",
     "FetchVolumesRequest",
     "FetchChaptersRequest",

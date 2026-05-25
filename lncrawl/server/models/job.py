@@ -5,11 +5,6 @@ from pydantic import BaseModel, Field, HttpUrl
 from ...dao import LanguageCode, OutputFormat
 
 
-class FetchNovelRequest(BaseModel):
-    url: HttpUrl = Field(description="The novel page url")
-    full: bool = Field(default=False, description="To fetch all contents")
-
-
 class FetchNovelsRequest(BaseModel):
     urls: List[HttpUrl] = Field(description="List of urls to fetch")
     full: bool = Field(default=False, description="To fetch all contents")

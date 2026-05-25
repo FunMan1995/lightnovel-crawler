@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Path, Query, Security
 from ...context import ctx
 from ...dao import Announcement, User
 from ..models import AnnouncementCreateRequest, AnnouncementUpdateRequest
-from ..security import ensure_admin, ensure_user
+from ..security import ensure_admin
 
 router = APIRouter()
 

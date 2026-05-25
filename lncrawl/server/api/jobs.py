@@ -8,7 +8,6 @@ from ...exceptions import ServerErrors
 from ..models import (
     FetchChaptersRequest,
     FetchImagesRequest,
-    FetchNovelRequest,
     FetchNovelsRequest,
     FetchVolumesRequest,
     MakeArtifactsRequest,
@@ -92,15 +91,6 @@ def replay_job(
     )
 
 
-@router.post("/create/fetch-novel", summary="Create a job to fetch entire novel")
-def fetch_novel(
-    user: User = Security(ensure_user),
-    body: FetchNovelRequest = Body(),
-) -> Job:
-    url = str(body.url)
-    return ctx.jobs.fetch_novel(user, url, full=body.full)
-
-
 @router.post("/create/fetch-novels", summary="Create a job to fetch multiple novels")
 def fetch_novels(
     user: User = Security(ensure_user),
@@ -109,6 +99,8 @@ def fetch_novels(
     urls = [str(url) for url in body.urls]
     if not urls:
         raise ServerErrors.no_novels_to_download
+    if len(urls) == 1:
+        return ctx.jobs.fetch_novel(user, urls[0], full=body.full)
     if body.full and user.tier == UserTier.BASIC:
         raise ServerErrors.full_novel_not_allowed
     return ctx.jobs.fetch_many_novels(user, *urls, full=body.full)
