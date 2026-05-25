@@ -183,6 +183,7 @@ class ChapterService:
                 job = ctx.jobs.fetch_chapter(user, chapter_id)
 
         if language:
+            content = None
             translation = self.get_chapter_translation(chapter, language)
             if translation and translation.is_available:
                 chapter.title = translation.chapter_title or chapter.title
