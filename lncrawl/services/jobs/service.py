@@ -10,7 +10,7 @@ from ...exceptions import ServerErrors
 from ...server.models import Paginated
 from ...server.tier import JOB_PRIORITY_LEVEL
 from ...utils.time_utils import current_timestamp
-from .utils import select_ancestors, select_descendends
+from .utils import select_ancestors, select_descendants
 
 T = TypeVar("T")
 
@@ -595,7 +595,7 @@ class JobService:
                 failed=Job.failed - failed,
             )
 
-            sa_deps = select_descendends(job_id, True)
+            sa_deps = select_descendants(job_id, True)
             sess.exec(sq.delete(Job).where(sq.col(Job.id).in_(sa_deps)))
 
             sess.commit()
@@ -747,7 +747,7 @@ class JobService:
 
     def _cancel_down(self, sess: Session, job_id: str, inclusive=False) -> None:
         now = current_timestamp()
-        sa_deps = select_descendends(job_id, inclusive)
+        sa_deps = select_descendants(job_id, inclusive)
         sess.exec(
             sq.update(Job)
             .where(

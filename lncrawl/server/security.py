@@ -50,6 +50,8 @@ def ensure_admin(
 def ensure_local(
     user: User = Security(ensure_user, scopes=[UserRole.LOCAL]),
 ) -> User:
+    # LOCAL scope is granted during token creation for local requests, but the
+    # underlying user must have ADMIN role to access local-only endpoints.
     if user.role != UserRole.ADMIN:
         raise ServerErrors.forbidden
     return user
