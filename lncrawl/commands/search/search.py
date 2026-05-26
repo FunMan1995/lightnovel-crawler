@@ -70,7 +70,11 @@ def search(
     ctx.sources.ensure_load()
 
     # Get searchable crawlers
-    sources = ctx.sources.list(source_query, can_search=True)
+    sources = ctx.sources.list(
+        source_query,
+        can_search=True,
+        include_rejected=False,
+    )
     if not sources:
         print("[red]No searchable sources available[/red]")
         raise typer.Exit(1)

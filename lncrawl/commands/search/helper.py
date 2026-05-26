@@ -1,4 +1,3 @@
-from concurrent.futures import Future
 from difflib import SequenceMatcher
 import logging
 from threading import Event
@@ -28,35 +27,31 @@ def prompt_query() -> str:
 
 def perform_search(
     query: str,
-    sources: List[SourceItem],
+    sources: List["SourceItem"],
     limit: int,
     concurrency: int,
     timeout: float,
-) -> List[CombinedSearchResult]:
+) -> List["CombinedSearchResult"]:
     """Perform the actual search across sources."""
     from ...core import CombinedSearchResult, TaskManager
 
-    logger.info(f'Searching {len(sources)} sources for "{query}"')
     signal = Event()
     taskman = TaskManager(concurrency, signal=signal)
 
-    # Submit search tasks
-    futures: List[Future[List[SearchResult]]] = []
-    for source in sources:
-        future = taskman.submit_task(search_job, source, query, signal)
-        futures.append(future)
+    logger.info(f'Searching {len(sources)} sources for "{query}"')
+    futures = [taskman.submit_task(search_job, source, query, signal) for source in sources]
 
     # Wait for all tasks to finish with progress
     records: List[SearchResult] = []
     try:
-        for result_list in taskman.resolve(
+        for result in taskman.resolve(
             futures,
             unit="source",
             desc="Searching",
             signal=signal,
             timeout=timeout,
         ):
-            records.extend(result_list or [])
+            records += result or []
     except KeyboardInterrupt:
         signal.set()
     except Exception:
@@ -100,21 +95,14 @@ def perform_search(
     return results[:limit]
 
 
-def search_job(source: SourceItem, query: str, signal: Event) -> List[SearchResult]:
+def search_job(source: "SourceItem", query: str, signal: Event):
     from ...core import SearchResult
 
     url = source.url
-    logger.info(f"[green]{url}[/green] Searching...")
-    try:
-        crawler = ctx.sources.init_crawler(url)
-        crawler.scraper.signal = signal
-        results = crawler.search(query)
-        results = [SearchResult(**item) for item in results]
-        logger.info(f"[green]{url}[/green] Found {len(results)} results")
-        crawler.close()
-        return results
-    except KeyboardInterrupt:
-        raise
-    except Exception:
-        logger.info(f"[green]{url}[/green] Search failed", exc_info=ctx.logger.is_debug)
-    return []
+    crawler = ctx.sources.init_crawler(url)
+    crawler.scraper.signal = signal
+    results = crawler.search(query)
+    results = [SearchResult(**item) for item in results]
+    crawler.close()
+    logger.info(f"[green]{url}[/green] Found {len(results)} results")
+    return results

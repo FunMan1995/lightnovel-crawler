@@ -170,23 +170,20 @@ The web UI lets you browse, download, and read novels without touching the comma
 **Common examples:**
 
 ```bash
-# Open the web UI (browser opens automatically)
-lncrawl
+# Open as application (no login)
+lncrawl app
 
-# Run as a headless server (no browser)
+# Run as a server (has login)
 lncrawl server
 
 # Download the first 10 chapters as EPUB
 lncrawl crawl "https://example.com/novel/page" -f epub --first 10
 
 # Download all chapters
-lncrawl crawl "https://example.com/novel/page" -f epub
+lncrawl crawl "https://example.com/novel/page" -f epub --all
 
 # Search by title
 lncrawl search "The Beginning After The End"
-
-# Download a specific chapter range as plain text
-lncrawl crawl "https://example.com/novel/page" -f txt --start 50 --end 100
 ```
 
 _Use a URL from any [supported source](#supported-sources)._

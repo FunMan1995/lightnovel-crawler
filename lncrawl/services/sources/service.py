@@ -182,11 +182,11 @@ class Sources:
             if all(
                 [
                     domains is None or item.domain in domains,
-                    has_mtl is None or item.has_mtl == has_mtl,
-                    has_manga is None or item.has_manga == has_manga,
-                    can_login is None or item.can_login == can_login,
-                    can_search is None or item.can_search == can_search,
-                    include_rejected or item.is_disabled,
+                    has_mtl is None or item.has_mtl is has_mtl,
+                    has_manga is None or item.has_manga is has_manga,
+                    can_login is None or item.can_login is can_login,
+                    can_search is None or item.can_search is can_search,
+                    include_rejected or not item.is_disabled,
                 ]
             )
         ]
