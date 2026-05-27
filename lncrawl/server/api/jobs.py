@@ -155,10 +155,15 @@ def make_artifacts(
     user: User = Security(ensure_user),
     body: MakeArtifactsRequest = Body(),
 ) -> Job:
-    formats = set(body.formats) & ENABLED_FORMATS[user.tier]
+    formats = list(set(body.formats) & ENABLED_FORMATS[user.tier])
     if len(formats) == 0:
         raise ServerErrors.no_artifacts_to_create
-    return ctx.jobs.make_many_artifacts(user, body.novel_id, *formats)
+    return ctx.jobs.make_many_artifacts(
+        user,
+        body.novel_id,
+        *formats,
+        language=body.language,
+    )
 
 
 @router.post("/create/translate-novels", summary="Create a job to translate novels")

@@ -156,7 +156,7 @@ class ChapterService:
                 ).all()
                 serial_title_map = {t.chapter_serial: t.chapter_title for t in translations}
             for item in items:
-                item.title = serial_title_map[item.serial]
+                item.title = serial_title_map.get(item.serial) or item.title
 
     def get_chapter_translation(self, chapter: Chapter, language: LanguageCode):
         with ctx.db.session() as sess:

@@ -48,10 +48,9 @@ class JobRunner:
             try:
                 JobRunner(job, _queue[job.id]).process()
             finally:
-                with _lock.using(signal):
-                    if job.id in _queue:
-                        _queue.pop(job.id).set()
-                        _users.pop(job.id)
+                if job.id in _queue:
+                    _queue.pop(job.id).set()
+                    _users.pop(job.id)
         except Exception:
             logger.error("Unexpected error in runner", exc_info=True)
 
@@ -389,12 +388,7 @@ class JobRunner:
                 self.__set_running()
 
             novel = ctx.novels.get(novel_id)
-            for done, total in ctx.translator.translate_novel(novel, language, self.signal):
-                with ctx.db.session() as sess:
-                    ctx.jobs._update(sess, self.job.id, done=done, total=total)
-                    sess.commit()
-                self.job.done = done
-                self.job.total = total
+            ctx.translator.translate_novel(novel, language, self.signal)
 
             if self.job.type != JobType.FULL_NOVEL_TRANSLATION:
                 return self.__set_done()
@@ -404,7 +398,7 @@ class JobRunner:
                 if not volumes:
                     return self.__set_done()
 
-                ctx.jobs.translate_many_volumes(
+                job = ctx.jobs.translate_many_volumes(
                     self.user,
                     *(volume.id for volume in volumes),
                     language=language,
@@ -412,6 +406,7 @@ class JobRunner:
                     novel_id=novel_id,
                     novel_title=novel.title,
                 )
+                added_types[job.type] = job.id
 
             if JobType.ARTIFACT not in added_types:
                 ctx.jobs.make_artifact(
@@ -421,7 +416,7 @@ class JobRunner:
                     language=language,
                     parent_id=self.job.id,
                     novel_title=novel.title,
-                    depends_on=added_types[JobType.VOLUME_BATCH],
+                    depends_on=added_types[JobType.VOLUME_TRANSLATION_BATCH],
                 )
 
             return self.__increment()
@@ -497,7 +492,7 @@ class JobRunner:
             if not volume_id:
                 return self.__set_done("No volume id")
 
-            chapter_ids = set([chapter.id for chapter in ctx.chapters.list(volume_id=volume_id)])
+            chapter_ids = set(ctx.chapters.list_ids(volume_id=volume_id))
             if self.job.is_running:
                 chapter_ids -= set([job.extra.get("chapter_id") for job in self.children])
             else:
@@ -529,7 +524,7 @@ class JobRunner:
             if not language:
                 return self.__set_done("No target language")
 
-            chapter_ids = set([chapter.id for chapter in ctx.chapters.list(volume_id=volume_id)])
+            chapter_ids = set(ctx.chapters.list_ids(volume_id=volume_id))
             if self.job.is_running:
                 chapter_ids -= set([job.extra.get("chapter_id") for job in self.children])
             else:
@@ -545,6 +540,9 @@ class JobRunner:
                     parent_id=self.job.id,
                     novel_title=self.job.extra.get("novel_title"),
                 )
+
+            volume = ctx.volumes.get(volume_id)
+            ctx.translator.translate_volume(volume, language, self.signal)
 
             return self.__increment()
         except AbortedException:
@@ -672,13 +670,7 @@ class JobRunner:
             if not self.job.is_running:
                 self.__set_running()
 
-            for done, total in ctx.translator.translate_chapter(chapter, language, self.signal):
-                with ctx.db.session() as sess:
-                    ctx.jobs._update(sess, self.job.id, done=done, total=total)
-                    sess.commit()
-                self.job.done = done
-                self.job.total = total
-
+            ctx.translator.translate_chapter(chapter, language, self.signal)
             return self.__set_done()
         except AbortedException:
             return False

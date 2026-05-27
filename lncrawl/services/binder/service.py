@@ -70,6 +70,8 @@ class BinderService:
             raise ServerErrors.format_not_available
 
         file_name = safe_filename(novel_title).title()
+        if language:
+            file_name += f".{language}"
         file_name += f".{format}"
         if format in requires_zip:
             file_name += ".zip"

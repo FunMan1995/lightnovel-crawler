@@ -20,6 +20,7 @@ class ArtifactService:
         user_id: Optional[str] = None,
         novel_id: Optional[str] = None,
         format: Optional[OutputFormat] = None,
+        language: Optional[LanguageCode] = None,
     ) -> Paginated[Artifact]:
         with ctx.db.session() as sess:
             stmt = select(Artifact)
@@ -33,6 +34,8 @@ class ArtifactService:
                 stmt = stmt.where(Artifact.job_id == job_id)
             if format:
                 stmt = stmt.where(Artifact.format == format)
+            if language:
+                stmt = stmt.where(Artifact.language == language)
 
             # Apply sorting
             stmt = stmt.order_by(desc(Artifact.updated_at))

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -25,6 +25,7 @@ class FetchImagesRequest(BaseModel):
 class MakeArtifactsRequest(BaseModel):
     novel_id: str = Field(description="The novel id")
     formats: List[OutputFormat] = Field(description="List of formats")
+    language: Optional[LanguageCode] = Field(default=None, description="Target language code")
 
 
 class TranslateNovelsRequest(BaseModel):

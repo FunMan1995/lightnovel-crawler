@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
-from ...dao import Artifact, OutputFormat, User
+from ...dao import Artifact, LanguageCode, OutputFormat, User
 from ...server.tier import ENABLED_FORMATS
 from ..models import Paginated
 from ..security import ensure_user
@@ -24,6 +24,7 @@ def list_artifacts(
     user_id: Optional[str] = Query(default=None),
     novel_id: Optional[str] = Query(default=None),
     format: Optional[OutputFormat] = Query(default=None),
+    language: Optional[LanguageCode] = Query(default=None),
 ) -> Paginated[Artifact]:
     return ctx.artifacts.list(
         limit=limit,
@@ -32,6 +33,7 @@ def list_artifacts(
         job_id=job_id,
         format=format,
         novel_id=novel_id,
+        language=language,
     )
 
 

@@ -92,7 +92,7 @@ class Job(BaseTable, table=True):
         # Require the Novel Title
         novel_title = self.extra.get("novel_title") or ""
         if novel_title:
-            novel_title = f"{novel_title} · "
+            novel_title = f'"{novel_title}" · '
 
         if self.type == JobType.VOLUME:
             volume_serial = self.extra.get("volume_serial") or ""
@@ -140,7 +140,7 @@ class Job(BaseTable, table=True):
             language = f" → {LanguageCode(language).name.title()}"
 
         if self.type == JobType.NOVEL_TRANSLATION or self.type == JobType.FULL_NOVEL_TRANSLATION:
-            return f"Translate {novel_title}{language}"
+            return f"Translate {novel_title[:-3]}{language}"
 
         if (
             self.type == JobType.NOVEL_TRANSLATION_BATCH

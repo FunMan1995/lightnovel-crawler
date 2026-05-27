@@ -43,7 +43,7 @@ class VolumeService:
                 ).all()
                 serial_title_map = {t.volume_serial: t.volume_title for t in translations}
             for item in items:
-                item.title = serial_title_map[item.serial]
+                item.title = serial_title_map.get(item.serial) or item.title
 
     def get(self, volume_id: str) -> Volume:
         with ctx.db.session() as sess:
