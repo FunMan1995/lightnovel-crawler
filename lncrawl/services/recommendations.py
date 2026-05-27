@@ -44,7 +44,6 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 _SCORE_COLS = (Novel.id, Novel.tags, Novel.domain, Novel.title, Novel.authors)
 
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -85,7 +84,7 @@ def _idf_jaccard(a: Set[str], b: Set[str], idf: Dict[str, float]) -> float:
 
 class _LRUTTLCache:
     """
-    LRU cache with per-entry TTL. Not thread-safe — must be accessed under _cache_lock.
+    LRU cache with per-entry TTL. Not thread-safe — must be accessed under a lock.
 
     Stores (ids, inserted_at) pairs. Expired entries are lazily evicted on access;
     LRU entries are evicted when the cache reaches capacity.
@@ -138,17 +137,6 @@ class _CandidateRow(NamedTuple):
     domain: str
     title: str
     authors: Optional[str]
-
-
-# ---------------------------------------------------------------------------
-# Module-level cache state (defined after _LRUTTLCache)
-# ---------------------------------------------------------------------------
-
-# Cache stores ranked novel IDs only — full Novel objects (including synopsis) are never cached.
-_cache: _LRUTTLCache = _LRUTTLCache(maxsize=CACHE_MAX_ENTRIES, ttl=CACHE_TTL_SECONDS)
-_pending: Set[str] = set()  # novel IDs currently being refreshed in a background thread
-_computing: Dict[str, threading.Event] = {}  # novel IDs with a synchronous compute in progress
-_cache_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -224,6 +212,11 @@ class RecommendationService:
         self._index = _InvertedIndex()
         self._index_ready = False
         self._index_init_lock = threading.Lock()
+        # Cache stores ranked novel IDs only — full Novel objects are never cached.
+        self._cache: _LRUTTLCache = _LRUTTLCache(maxsize=CACHE_MAX_ENTRIES, ttl=CACHE_TTL_SECONDS)
+        self._pending: Set[str] = set()  # novel IDs being refreshed in a background thread
+        self._computing: Dict[str, threading.Event] = {}  # synchronous computes in progress
+        self._cache_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Index lifecycle
@@ -354,11 +347,6 @@ class RecommendationService:
         return self._score_candidates(src, candidates)
 
     def _warmup(self, limit: int) -> None:
-        """
-        Pre-compute recommendations for the most recently updated novels.
-        Intended to be called in a background thread at server startup so the
-        cache and inverted index are warm before real user traffic arrives.
-        """
         start_time = time.monotonic()
         logger.info("Warmup started")
         with ctx.db.session() as sess:
@@ -370,34 +358,30 @@ class RecommendationService:
                 self.get(novel_id)
             except Exception:
                 pass
-        runtime = time.monotonic() - start_time
-        logger.info(f"Warmup complete in {runtime:0.3} seconds")
+        logger.info(f"Warmup complete in {time.monotonic() - start_time:0.3} seconds")
 
     # ------------------------------------------------------------------
     # Stale-while-revalidate cache
     # ------------------------------------------------------------------
 
-    def _store_cache(self, novel_id: str, top_ids: List[str]) -> None:
-        with _cache_lock:
-            _cache.set(novel_id, top_ids)
-
     def _refresh_background(self, novel_id: str) -> None:
         """Recompute recommendations in a background thread; always clears _pending."""
         try:
             top_ids = self._compute(novel_id)
-            self._store_cache(novel_id, top_ids)
+            with self._cache_lock:
+                self._cache.set(novel_id, top_ids)
         except Exception:
             pass
         finally:
-            with _cache_lock:
-                _pending.discard(novel_id)
+            with self._cache_lock:
+                self._pending.discard(novel_id)
 
     def _maybe_refresh(self, novel_id: str) -> None:
         """Spawn a background refresh thread if one is not already running."""
-        with _cache_lock:
-            if novel_id in _pending:
+        with self._cache_lock:
+            if novel_id in self._pending:
                 return
-            _pending.add(novel_id)
+            self._pending.add(novel_id)
         threading.Thread(target=self._refresh_background, args=(novel_id,), daemon=True).start()
 
     # ------------------------------------------------------------------
@@ -408,8 +392,8 @@ class RecommendationService:
         threading.Thread(target=self._warmup, args=[limit], daemon=True).start()
 
     def invalidate(self, novel_id: str) -> None:
-        with _cache_lock:
-            _cache.pop(novel_id)
+        with self._cache_lock:
+            self._cache.pop(novel_id)
 
     def get(self, novel_id: str, limit: int = 8) -> List[Novel]:
         """
@@ -421,26 +405,35 @@ class RecommendationService:
         Cache miss, concurrent thread:                wait for the first thread, then read cache.
         """
         while True:
-            with _cache_lock:
-                cached, cached_time = _cache.get(novel_id)
+            stale = False
+            waiting: Optional[threading.Event] = None
+            with self._cache_lock:
+                cached, cached_time = self._cache.get(novel_id)
                 if cached is not None:
-                    if time.monotonic() - cached_time > FRESH_TTL_SECONDS:
-                        self._maybe_refresh(novel_id)
-                    return self._load_novels(cached[:limit])
-                waiting = _computing.get(novel_id)
-                if waiting is None:
+                    stale = time.monotonic() - cached_time > FRESH_TTL_SECONDS
+                elif novel_id not in self._computing:
                     # This thread will compute — register an event others can wait on.
                     compute_event = threading.Event()
-                    _computing[novel_id] = compute_event
+                    self._computing[novel_id] = compute_event
                     break
+                else:
+                    waiting = self._computing[novel_id]
+
+            if cached is not None:
+                if stale:
+                    self._maybe_refresh(novel_id)  # called outside lock — no deadlock
+                return self._load_novels(cached[:limit])
+
             # Another thread is already computing this novel; wait for it then re-check cache.
-            waiting.wait(timeout=60)
+            if waiting is not None:
+                waiting.wait(timeout=60)
 
         try:
             top_ids = self._compute(novel_id)
-            self._store_cache(novel_id, top_ids)
+            with self._cache_lock:
+                self._cache.set(novel_id, top_ids)
             return self._load_novels(top_ids[:limit])
         finally:
-            with _cache_lock:
-                _computing.pop(novel_id, None)
+            with self._cache_lock:
+                self._computing.pop(novel_id, None)
             compute_event.set()
