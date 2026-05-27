@@ -42,7 +42,8 @@ class GoogleMobileTranslate(ChunkedBackendBase):
         signal: Optional[Event] = None,
     ) -> str:
         with self.lock:
-            self.scraper.signal = signal
+            if signal is not None:
+                self.scraper.signal = signal
             soup = self.scraper.get_soup(
                 "https://translate.google.com/m",
                 params={
@@ -69,7 +70,8 @@ class GoogleClient5Translate(ChunkedBackendBase):
         signal: Optional[Event] = None,
     ) -> str:
         with self.lock:
-            self.scraper.signal = signal
+            if signal is not None:
+                self.scraper.signal = signal
             data = self.scraper.get_json(
                 "https://clients5.google.com/translate_a/t",
                 params={
@@ -94,7 +96,8 @@ class GoogleGtxTranslate(ChunkedBackendBase):
         signal: Optional[Event] = None,
     ) -> str:
         with self.lock:
-            self.scraper.signal = signal
+            if signal is not None:
+                self.scraper.signal = signal
             data = self.scraper.get_json(
                 "https://translate.googleapis.com/translate_a/single",
                 params={

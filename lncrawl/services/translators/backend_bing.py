@@ -67,7 +67,8 @@ class BingTranslate(BackendBase):
         if target not in _LANG_MAP:
             raise ValueError(f"Bing Translate does not support: {target}")
         with self.lock:
-            self.scraper.signal = signal
+            if signal is not None:
+                self.scraper.signal = signal
             data = self.scraper.post_json(
                 "https://api.cognitive.microsofttranslator.com/translate",
                 data=json.dumps([{"Text": t} for t in texts]),

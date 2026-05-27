@@ -23,9 +23,12 @@ from ..tier import ENABLED_FORMATS
 router = APIRouter()
 
 
-@router.get("s", summary="Returns a list of jobs")
+@router.get(
+    "s",
+    summary="Returns a list of jobs",
+    dependencies=[Security(ensure_user)],
+)
 def list_jobs(
-    user: User = Security(ensure_user),
     offset: int = Query(default=0),
     limit: int = Query(default=20, le=100),
     type: Optional[JobType] = Query(default=None),

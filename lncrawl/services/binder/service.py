@@ -5,7 +5,7 @@ from threading import Event
 from typing import Callable, Dict, Optional, Set
 
 from ...context import ctx
-from ...dao import Artifact, OutputFormat
+from ...dao import Artifact, LanguageCode, OutputFormat
 from ...exceptions import ServerErrors
 from ...utils.file_tools import safe_filename
 from .calibre import convert_epub, is_calibre_available
@@ -62,6 +62,7 @@ class BinderService:
         job_id: Optional[str] = None,
         user_id: Optional[str] = None,
         epub: Optional[Artifact] = None,
+        language: Optional[LanguageCode] = None,
         signal=Event(),
     ) -> Artifact:
         make = archive_maker[format]
@@ -78,6 +79,7 @@ class BinderService:
             user_id=user_id,
             job_id=job_id,
             format=format,
+            language=language,
             file_name=file_name,
         )
 

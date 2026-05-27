@@ -64,12 +64,28 @@ class NovelService:
             ).all()
         return {domain: total_novels for domain, total_novels in domains}
 
-    def get(self, novel_id: str) -> Novel:
+    def get(self, novel_id: str, language: Optional[LanguageCode] = None) -> Novel:
         with ctx.db.session() as sess:
             novel = sess.get(Novel, novel_id)
             if not novel:
                 raise ServerErrors.no_such_novel
-            return novel
+        if language:
+            translation = self.get_novel_translation(novel, language)
+            if not translation:
+                raise ServerErrors.no_such_novel.with_extra(language)
+            novel.title = translation.title
+            novel.authors = translation.authors
+            novel.synopsis = translation.synopsis
+        return novel
+
+    def list_translation_languages(self, novel_id: str) -> List[LanguageCode]:
+        with ctx.db.session() as sess:
+            translations = sess.exec(
+                sq.select(NovelTranslation.language).where(
+                    NovelTranslation.novel_id == novel_id,
+                )
+            ).all()
+            return [LanguageCode(lang) for lang in translations]
 
     def get_novel_translation(self, novel: Novel, language: LanguageCode):
         with ctx.db.session() as sess:

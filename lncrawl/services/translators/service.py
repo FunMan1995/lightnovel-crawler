@@ -105,47 +105,40 @@ class TranslationService:
     ):
         translation = ctx.novels.get_novel_translation(novel, target)
         if translation:
+            yield 1, 1
             return
 
-        texts = [
-            novel.title,
-            novel.authors or "",
-            "; ".join(novel.tags),
-        ]
-
         done = 0
-        total = 3
-        translated: List[str] = [""] * 4
+        total = 2
+        synopsis: List[str] = []
         if novel.synopsis:
-            synopsis: List[str] = []
             for out in self.translate_html(novel.synopsis, target, signal):
                 if isinstance(out, int):
                     done = 0
                     synopsis = []
-                    total = 3 + out
+                    total = out + 2
                 else:
                     done += 1
                     synopsis.append(out)
                 yield done, total
-            translated[0] = "".join(synopsis)
 
-        for i, out in enumerate(self.translate_batch(texts, target, signal)):
-            done += 1
-            translated[i + 1] = out
-            yield done, total
-
-        tags = translated[3].split("; ")
-        if tags:
-            ctx.tags.insert(tags)
+        (title, authors) = self.translate_batch(
+            [
+                novel.title,
+                novel.authors or "",
+            ],
+            target,
+            signal,
+        )
+        yield total, total
 
         with ctx.db.session() as sess:
             translation = NovelTranslation(
                 novel_id=novel.id,
                 language=target,
-                synopsis=translated[0],
-                title=translated[1],
-                authors=translated[2],
-                tags=tags,
+                title=title,
+                authors=authors,
+                synopsis="".join(synopsis),
             )
             sess.add(translation)
             sess.commit()
@@ -158,9 +151,12 @@ class TranslationService:
     ):
         translation = ctx.volumes.get_volume_translation(volume, target)
         if translation:
+            yield 1, 1
             return
 
         title = self.translate_text(volume.title, target, signal)
+        yield 1, 1
+
         with ctx.db.session() as sess:
             translation = VolumeTranslation(
                 novel_id=volume.novel_id,
@@ -185,15 +181,18 @@ class TranslationService:
             yield 1, 1
             return
 
+        done = 0
         total = 1
         results = []
         for out in self.translate_html(content, target, signal):
-            if isinstance(out, str):
-                results.append(out)
+            if isinstance(out, int):
+                done = 0
+                results = []
+                total = out + 3
             else:
-                total = out + 1
-                results.clear()
-            yield len(results), total
+                done += 1
+                results.append(out)
+            yield done, total
         translated = "".join(results)
 
         title = self.translate_text(chapter.title, target)
@@ -220,4 +219,4 @@ class TranslationService:
                 )
             sess.commit()
 
-        ctx.files.save_text(translation.translation_file, translated)
+        ctx.files.save_text(translation.content_file, translated)

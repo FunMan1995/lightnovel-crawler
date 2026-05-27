@@ -59,7 +59,7 @@ class ChapterTranslation(BaseTable, table=True):
 
     @computed_field  # type: ignore[misc]
     @property
-    def translation_file(self) -> str:
+    def content_file(self) -> str:
         """Translation content file path"""
         return f"novels/{self.novel_id}/chapters/{self.chapter_serial:06}.{self.language}.zst"
 
@@ -67,4 +67,4 @@ class ChapterTranslation(BaseTable, table=True):
     @property
     def is_available(self) -> bool:
         """Translation content file is available"""
-        return ctx.files.exists(self.translation_file)
+        return ctx.files.exists(self.content_file)

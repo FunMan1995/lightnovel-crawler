@@ -522,12 +522,14 @@ class JobService:
         *,
         parent_id: Optional[str] = None,
         depends_on: Optional[str] = None,
+        language: Optional[LanguageCode] = None,
         **data: Any,
     ) -> Job:
         data.update(
             {
                 "novel_id": novel_id,
                 "format": format,
+                "language": language,
             }
         )
         if not data.get("novel_title"):
@@ -552,12 +554,14 @@ class JobService:
         *formats: OutputFormat,
         parent_id: Optional[str] = None,
         depends_on: Optional[str] = None,
+        language: Optional[LanguageCode] = None,
         **data: Any,
     ) -> Job:
         data.update(
             {
                 "novel_id": novel_id,
                 "formats": formats,
+                "language": language,
             }
         )
         if not data.get("novel_title"):

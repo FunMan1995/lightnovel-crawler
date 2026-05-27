@@ -23,7 +23,8 @@ class LingvaTranslate(ChunkedBackendBase):
         signal: Optional[Event] = None,
     ) -> str:
         with self.lock:
-            self.scraper.signal = signal
+            if signal is not None:
+                self.scraper.signal = signal
             data = self.scraper.get_json(
                 f"https://lingva.ml/api/v1/auto/{target}/{quote(text, safe='')}",
                 timeout=60,

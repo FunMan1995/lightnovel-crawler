@@ -72,6 +72,3 @@ class NovelTranslation(BaseTable, table=True):
     title: str = sa.Field(description="Translated title of the novel")
     authors: Optional[str] = sa.Field(default=None, description="Translated list of authors")
     synopsis: Optional[str] = sa.Field(default=None, description="Translated synopsis or novel")
-    tags: List[str] = sa.Field(
-        default=[], sa_type=sa.JSON, description="Translated genres or thematic tags"
-    )
