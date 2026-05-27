@@ -786,6 +786,7 @@ class JobRunner:
                         self.user,
                         novel_id,
                         format,
+                        language=language,
                         parent_id=self.job.id,
                         depends_on=epub_job_id,
                     )
