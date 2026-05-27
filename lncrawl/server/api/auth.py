@@ -11,6 +11,7 @@ from ..models import (
     NameUpdateRequest,
     PasswordUpdateRequest,
     ResetPasswordRequest,
+    SendInviteRequest,
     SignupRequest,
     TokenResponse,
     UpdateRequest,
@@ -140,3 +141,12 @@ def list_my_tokens(
     user: User = Security(ensure_user),
 ) -> List[UserToken]:
     return ctx.users.list_user_tokens(user.id)
+
+
+@router.post("/me/send-invite", summary="Send a signup invitation email with referral token")
+def send_invite(
+    user: User = Security(ensure_user),
+    body: SendInviteRequest = Body(description="The invite request"),
+) -> bool:
+    ctx.users.send_invite_email(user, body.email)
+    return True

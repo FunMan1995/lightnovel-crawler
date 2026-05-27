@@ -37,6 +37,7 @@ from .user import (
     PasswordUpdateRequest,
     PutNotificationRequest,
     ResetPasswordRequest,
+    SendInviteRequest,
     SignupRequest,
     TokenResponse,
     UpdateRequest,
@@ -89,6 +90,7 @@ __all__ = [
     "ForgotPasswordRequest",
     "ResetPasswordRequest",
     "PutNotificationRequest",
+    "SendInviteRequest",
     # feedback
     "FeedbackCreateRequest",
     "FeedbackUpdateRequest",
