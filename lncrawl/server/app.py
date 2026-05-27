@@ -21,6 +21,7 @@ async def lifespan(_app: FastAPI):
     try:
         ctx.setup()
         ctx.scheduler.start()
+        ctx.recommendations.warmup()
         yield
     finally:
         ctx.destroy()

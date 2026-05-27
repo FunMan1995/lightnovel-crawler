@@ -83,6 +83,14 @@ async def get_novel_artifacts(
     return ctx.artifacts.list_latest(novel_id, language)
 
 
+@router.get("/{novel_id}/recommended", summary="Gets recommended novels based on similarity")
+def get_novel_recommended(
+    novel_id: str = Path(),
+    limit: int = Query(default=8, ge=4, le=20),
+) -> List[Novel]:
+    return ctx.recommendations.get(novel_id, limit)
+
+
 @router.delete(
     "/{novel_id}",
     summary="Removes a novel",

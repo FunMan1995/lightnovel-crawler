@@ -74,6 +74,12 @@ class __AppContext__:
         return NovelService()
 
     @cached_property
+    def recommendations(self):
+        from .services.recommendations import RecommendationService
+
+        return RecommendationService()
+
+    @cached_property
     def tags(self):
         from .services.tags import TagService
 
