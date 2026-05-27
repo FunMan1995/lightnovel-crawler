@@ -384,7 +384,7 @@ class RecommendationService:
         """
         while True:
             with _cache_lock:
-                cached: List[str] | None = _cache.get(novel_id)
+                cached = _cache.get(novel_id)
                 cached_time = _cache_times.get(novel_id, 0.0)
                 if cached is not None:
                     if time.monotonic() - cached_time > FRESH_TTL_SECONDS:
