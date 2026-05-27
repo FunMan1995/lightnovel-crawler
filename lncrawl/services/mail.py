@@ -67,7 +67,7 @@ class MailService:
             raise ServerErrors.email_send_failure from e
 
     def send_invite(self, email: str, inviter_name: str, link: str):
-        subject = f"You've been invited by {inviter_name}"
+        subject = "Lightnovel Crawler Invitation"
         body = emails.invite_template().render(inviter_name=inviter_name, link=link)
         self.send(email, subject, body)
 
