@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, OrderedDict
 import heapq
 import logging
 import math
@@ -7,7 +7,6 @@ import threading
 import time
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
-from cachetools import TTLCache
 import sqlmodel as sq
 
 from ..context import ctx
@@ -44,14 +43,6 @@ _WORD_RE = re.compile(r"[a-z0-9]+")
 # Columns needed for scoring — avoids fetching synopsis, cover_url, etc.
 _SCORE_COLS = (Novel.id, Novel.tags, Novel.domain, Novel.title, Novel.authors)
 
-# Cache stores ranked novel IDs only — full Novel objects (including synopsis) are never cached.
-# _cache_times tracks when each entry was computed so we can detect staleness within the TTL
-# window (stale-while-revalidate: serve the old result while refreshing in the background).
-_cache: TTLCache = TTLCache(maxsize=CACHE_MAX_ENTRIES, ttl=CACHE_TTL_SECONDS)
-_cache_times: Dict[str, float] = {}  # novel_id → monotonic time of last compute
-_pending: Set[str] = set()  # novel IDs currently being refreshed in a background thread
-_computing: Dict[str, threading.Event] = {}  # novel IDs with a synchronous compute in progress
-_cache_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -90,6 +81,44 @@ def _idf_jaccard(a: Set[str], b: Set[str], idf: Dict[str, float]) -> float:
 # ---------------------------------------------------------------------------
 # Data types
 # ---------------------------------------------------------------------------
+
+
+class _LRUTTLCache:
+    """
+    LRU cache with per-entry TTL. Not thread-safe — must be accessed under _cache_lock.
+
+    Stores (ids, inserted_at) pairs. Expired entries are lazily evicted on access;
+    LRU entries are evicted when the cache reaches capacity.
+    """
+
+    def __init__(self, maxsize: int, ttl: float) -> None:
+        self._maxsize = maxsize
+        self._ttl = ttl
+        self._store: OrderedDict[str, Tuple[List[str], float]] = OrderedDict()
+
+    def get(self, key: str) -> Tuple[Optional[List[str]], float]:
+        """Return (ids, inserted_at), or (None, 0.0) if absent or expired."""
+        item = self._store.get(key)
+        if item is None:
+            return None, 0.0
+        ids, ts = item
+        if time.monotonic() - ts > self._ttl:
+            del self._store[key]
+            return None, 0.0
+        self._store.move_to_end(key)
+        return ids, ts
+
+    def set(self, key: str, ids: List[str]) -> None:
+        if key in self._store:
+            self._store.move_to_end(key)
+        self._store[key] = (ids, time.monotonic())
+        if len(self._store) > self._maxsize:
+            self._store.popitem(last=False)  # evict least recently used
+
+    def pop(self, key: str) -> None:
+        self._store.pop(key, None)
+
+
 class _SourceFeatures(NamedTuple):
     """Extracted scoring features for the source novel."""
 
@@ -109,6 +138,17 @@ class _CandidateRow(NamedTuple):
     domain: str
     title: str
     authors: Optional[str]
+
+
+# ---------------------------------------------------------------------------
+# Module-level cache state (defined after _LRUTTLCache)
+# ---------------------------------------------------------------------------
+
+# Cache stores ranked novel IDs only — full Novel objects (including synopsis) are never cached.
+_cache: _LRUTTLCache = _LRUTTLCache(maxsize=CACHE_MAX_ENTRIES, ttl=CACHE_TTL_SECONDS)
+_pending: Set[str] = set()  # novel IDs currently being refreshed in a background thread
+_computing: Dict[str, threading.Event] = {}  # novel IDs with a synchronous compute in progress
+_cache_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------------------
@@ -339,8 +379,7 @@ class RecommendationService:
 
     def _store_cache(self, novel_id: str, top_ids: List[str]) -> None:
         with _cache_lock:
-            _cache[novel_id] = top_ids
-            _cache_times[novel_id] = time.monotonic()
+            _cache.set(novel_id, top_ids)
 
     def _refresh_background(self, novel_id: str) -> None:
         """Recompute recommendations in a background thread; always clears _pending."""
@@ -370,8 +409,7 @@ class RecommendationService:
 
     def invalidate(self, novel_id: str) -> None:
         with _cache_lock:
-            _cache.pop(novel_id, None)
-            _cache_times.pop(novel_id, None)
+            _cache.pop(novel_id)
 
     def get(self, novel_id: str, limit: int = 8) -> List[Novel]:
         """
@@ -384,8 +422,7 @@ class RecommendationService:
         """
         while True:
             with _cache_lock:
-                cached = _cache.get(novel_id)
-                cached_time = _cache_times.get(novel_id, 0.0)
+                cached, cached_time = _cache.get(novel_id)
                 if cached is not None:
                     if time.monotonic() - cached_time > FRESH_TTL_SECONDS:
                         self._maybe_refresh(novel_id)
