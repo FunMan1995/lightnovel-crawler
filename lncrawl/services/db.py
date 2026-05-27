@@ -225,12 +225,22 @@ class DB:
         logger.debug("Verifying database schema...")
         from alembic.autogenerate import compare_metadata
         from alembic.runtime.migration import MigrationContext
+        from sqlalchemy import Enum as SAEnum
+
+        dialect = self.engine.dialect.name
+
+        def _compare_type(*args):
+            # SQLite has no native enum type — enums are stored as VARCHAR
+            metadata_type = args[4]
+            if dialect == "sqlite" and isinstance(metadata_type, SAEnum):
+                return False
+            return None
 
         with self.engine.connect() as conn:
             mc = MigrationContext.configure(
                 conn,
                 opts={
-                    "compare_type": True,
+                    "compare_type": _compare_type,
                     # "compare_server_default": True,
                 },
             )
