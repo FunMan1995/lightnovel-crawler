@@ -4,6 +4,7 @@ from sqlalchemy import Table
 from sqlmodel import SQLModel
 
 from ..enums import *  # noqa: F401,F403
+from .activity import UserActivity
 from .announcement import Announcement
 from .artifact import Artifact
 from .chapter import Chapter, ChapterTranslation
@@ -19,6 +20,7 @@ from .user import User, UserToken
 from .volume import Volume, VolumeTranslation
 
 models: List[Type[SQLModel]] = [
+    UserActivity,
     User,
     UserToken,
     Tag,

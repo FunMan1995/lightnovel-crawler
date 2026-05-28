@@ -14,6 +14,12 @@ class __AppContext__:
         return Config()
 
     @cached_property
+    def activity(self):
+        from .services.activity import UserActivityService
+
+        return UserActivityService()
+
+    @cached_property
     def admin(self):
         from .services.admin import AdminService
 
