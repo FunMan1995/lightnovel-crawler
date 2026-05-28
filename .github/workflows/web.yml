@@ -18,9 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: dev
           fetch-depth: 1
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Fetch web build from lncrawl-web artifacts branch
         uses: actions/checkout@v6
@@ -28,7 +26,7 @@ jobs:
           repository: lncrawl/lncrawl-web
           ref: artifacts
           path: lncrawl/server/web
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.LNCRAWL_PAT }}
 
       - name: Strip dev-only files
         run: |
