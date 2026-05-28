@@ -8,9 +8,9 @@ The [Makefile](Makefile) wraps [uv](https://docs.astral.sh/uv/); `make install` 
 
 ```bash
 # Setup and install
-make setup            # Sync git submodules and ensure uv is installed
+make setup            # Ensure uv is installed
 make install          # setup + uv sync (default target: `make` or `make all`)
-make sync             # uv sync only (no submodule update)
+make sync             # uv sync only
 make upgrade          # setup + uv sync --upgrade
 
 # Development servers and tooling
@@ -45,7 +45,6 @@ make docker-up | docker-down | docker-logs
 # Misc
 make version          # Print lncrawl/VERSION
 make clean            # Remove .venv, logs, build, dist, *.egg-info, __pycache__
-make submodule        # git submodule sync + update --init --recursive --remote
 ```
 
 Run from source without make: `uv run python -m lncrawl [args]`.
@@ -65,7 +64,7 @@ Both share a single in-process `AppContext` (`ctx`) singleton; nothing is meant 
 
 - [lncrawl/__main__.py](lncrawl/__main__.py) → [lncrawl/app.py](lncrawl/app.py): Typer CLI. Subcommands `version`, `config`, `sources`, `crawl`, `search`, `server`, `app`, plus hidden `dev`. `app` subcommand launches the desktop webview (`lncrawl/server/webview.py`). When running as a **frozen executable** (PyInstaller), `__main__.py` calls `webview.start()` directly, bypassing the CLI.
 - [lncrawl/server/webview.py](lncrawl/server/webview.py): Desktop launcher. Opens the app in Chrome/Edge app-mode; falls back to system browser + a small tkinter status window (shows URL, Copy URL, Stop Server) when no app-mode browser is found.
-- [lncrawl/server/app.py](lncrawl/server/app.py): FastAPI app. `lifespan` calls `ctx.setup()` then `ctx.scheduler.start()`. API mounted at `/api`, web SPA (the [lncrawl/server/web](lncrawl/server/web) git submodule, built artifacts) served from `/`. OpenAPI at `/docs`, `/redoc`, `/openapi.json`.
+- [lncrawl/server/app.py](lncrawl/server/app.py): FastAPI app. `lifespan` calls `ctx.setup()` then `ctx.scheduler.start()`. API mounted at `/api`, web SPA served from `/`. OpenAPI at `/docs`, `/redoc`, `/openapi.json`.
 
 ### AppContext singleton
 
@@ -144,6 +143,5 @@ uv run python -m lncrawl sources list   # confirm registration
 
 - **Lazy imports inside `ctx` properties** are intentional — keeps CLI startup fast and avoids importing the FastAPI/DB stack for `lncrawl crawl`. Don't move imports to module top in `context.py`.
 - **`ruff` config** ([pyproject.toml](pyproject.toml)): line-length 100, double quotes, target py39. Excludes `lncrawl/cloudscraper` (vendored), `lncrawl-web`, `res`, `logs`, `Lightnovels`, `.github`.
-- The web frontend is a **git submodule** ([lncrawl/server/web](lncrawl/server/web) → [lncrawl-web](https://github.com/lncrawl/lncrawl-web)). It has its own CI; backend changes shouldn't touch built assets.
 - README.md is **partially auto-generated** (the source list and CLI help blocks). Don't hand-edit those regions; regenerate via the appropriate script.
 - The vendored [lncrawl/cloudscraper/](lncrawl/cloudscraper/) is a fork — apply upstream-style patches there rather than refactoring.

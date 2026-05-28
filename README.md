@@ -233,14 +233,13 @@ Install [uv](https://docs.astral.sh/uv/) first (or let `make setup` install it f
 ```bash
 git clone https://github.com/lncrawl/lightnovel-crawler.git
 cd lightnovel-crawler
-make install   # clones submodules + syncs dependencies
+make install   # install uv + syncs dependencies
 make start     # runs the dev server
 ```
 
 Or with uv directly:
 
 ```bash
-git submodule update --init --recursive
 uv sync --all-extras --all-groups
 uv run python -m lncrawl -ll server
 ```
@@ -250,7 +249,7 @@ uv run python -m lncrawl -ll server
 
 ```bash
 # Setup
-make setup            # Sync submodules and install uv
+make setup            # install uv
 make install          # setup + uv sync (default: `make`)
 make sync             # uv sync only
 make upgrade          # setup + uv sync --upgrade
@@ -284,7 +283,6 @@ make docker-logs      # docker compose logs -f
 
 # Misc
 make clean            # Remove .venv, build artifacts, caches
-make submodule        # Sync and update submodules
 make version          # Print current version
 ```
 

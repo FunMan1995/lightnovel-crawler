@@ -25,7 +25,6 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v6
         with:
-          submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔧 Set lowercase image name

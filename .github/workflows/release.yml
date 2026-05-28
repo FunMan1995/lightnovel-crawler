@@ -18,8 +18,13 @@ jobs:
     permissions:
       contents: read
 
+  sync-web:
+    uses: ./.github/workflows/web.yml
+    permissions:
+      contents: write
+
   build-docker:
-    needs: validate
+    needs: [validate, sync-web]
     uses: ./.github/workflows/build-docker.yml
     permissions:
       contents: read
@@ -27,7 +32,7 @@ jobs:
 
   build-windows:
     name: Build & Publish (Windows)
-    needs: validate
+    needs: [validate, sync-web]
     runs-on: windows-latest
     permissions:
       contents: write
@@ -35,7 +40,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🧰 Install OpenSSL
@@ -81,7 +85,7 @@ jobs:
 
   build-mac:
     name: Build & Publish (MacOS)
-    needs: validate
+    needs: [validate, sync-web]
     runs-on: macos-latest
     permissions:
       contents: write
@@ -89,7 +93,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python
@@ -126,7 +129,7 @@ jobs:
 
   build-linux:
     name: Build & Publish (Linux)
-    needs: validate
+    needs: [validate, sync-web]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -134,7 +137,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python
@@ -182,7 +184,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python

@@ -3,7 +3,7 @@
 # =============================================================================
 
 .PHONY: all \
-	version submodule clean ensure-uv setup sync install upgrade \
+	version clean ensure-uv setup sync install upgrade \
 	major minor patch \
 	lint lint-fix start dev watch \
 	index-gen check-sources \
@@ -37,15 +37,11 @@ endif
 all: install
 
 # =============================================================================
-# Git — info, submodules, release tags
+# Git — info, release tags
 # =============================================================================
 
 version:
 	@echo Lightnovel Crawler: $(VERSION)
-
-submodule:
-	@git submodule sync
-	@git submodule update --force --init --recursive --remote
 
 remove-tag:
 	git diff --exit-code HEAD
@@ -93,7 +89,7 @@ minor: ensure-uv
 patch: ensure-uv
 	@$(UV) run python ./scripts/bump.py patch
 
-setup: submodule ensure-uv
+setup: ensure-uv
 
 sync:
 	$(UV) sync $(UV_SYNC_FLAGS)
