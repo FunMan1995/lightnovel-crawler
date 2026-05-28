@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Literal
 
 from fastapi import APIRouter, Body, Path, Query, Security
 
@@ -37,6 +37,7 @@ def create_announcement(
         title=body.title,
         message=body.message,
         type=body.type,
+        is_active=body.is_active,
     )
 
 
@@ -57,6 +58,17 @@ def update_announcement(
         is_active=body.is_active,
         bump_version=body.bump_version,
     )
+
+
+@router.post(
+    "/{announcement_id}/interact",
+    summary="Track announcement interaction (click or close)",
+)
+def track_interaction(
+    announcement_id: str = Path(),
+    interaction_type: Literal["click", "close"] = Body(..., embed=True),
+) -> bool:
+    return ctx.announcements.track_interaction(announcement_id, interaction_type)
 
 
 @router.delete(
