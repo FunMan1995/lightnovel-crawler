@@ -99,6 +99,9 @@ class ActivityType(IntEnum):
     VOLUME_TRANSLATION = 5
     CHAPTER = 6
     CHAPTER_TRANSLATION = 7
+    ACCOUNT = 8
+    SOURCES = 9
+    REQUEST = 10
 
 
 class LanguageCode(str, Enum):

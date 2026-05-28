@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
-from ...dao import Chapter, Job, LanguageCode, User, Volume
+from ...dao import ActivityType, Chapter, Job, LanguageCode, User, Volume
 from ..models import Paginated
 from ..security import ensure_user
 
@@ -14,7 +14,9 @@ router = APIRouter()
 @router.get("/{volume_id}", summary="Returns a volume details")
 def get_volume(
     volume_id: str = Path(),
+    user: User = Security(ensure_user),
 ) -> Volume:
+    ctx.activity.record(user.id, ActivityType.VOLUME, volume_id)
     return ctx.volumes.get(volume_id)
 
 

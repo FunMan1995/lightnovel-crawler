@@ -3,9 +3,9 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
-from ...dao import Artifact, Chapter, LanguageCode, Novel, Volume
+from ...dao import ActivityType, Artifact, Chapter, LanguageCode, Novel, User, Volume
 from ..models import Paginated
-from ..security import ensure_admin
+from ..security import ensure_admin, ensure_user
 
 # The root router
 router = APIRouter()
@@ -41,7 +41,11 @@ def list_sources() -> Dict[str, int]:
 def get_novel(
     novel_id: str = Path(),
     language: Optional[LanguageCode] = Query(default=None),
+    user: User = Security(ensure_user),
 ) -> Novel:
+    ctx.activity.record(user.id, ActivityType.NOVEL, novel_id)
+    if language:
+        ctx.activity.record(user.id, ActivityType.NOVEL_TRANSLATION, novel_id)
     return ctx.novels.get(novel_id, language)
 
 

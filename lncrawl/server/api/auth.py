@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Body, Form, Query, Security
 
 from ...context import ctx
-from ...dao import User, UserToken
+from ...dao import ActivityType, User, UserToken
 from ..models import (
     ForgotPasswordRequest,
     LoginRequest,
@@ -56,6 +56,7 @@ def signup(
 def me(
     user: User = Security(ensure_user),
 ) -> User:
+    ctx.activity.record(user.id, ActivityType.ACCOUNT, user.id)
     return user
 
 

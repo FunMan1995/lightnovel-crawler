@@ -1,3 +1,4 @@
+from .activity import UserActivityStats
 from .announcement import AnnouncementCreateRequest, AnnouncementUpdateRequest
 from .config import ConfigProperty, ConfigSection, ConfigUpdateRequest
 from .crawler import LoginData
@@ -44,6 +45,8 @@ from .user import (
 )
 
 __all__ = [
+    # activity
+    "UserActivityStats",
     # announcement
     "AnnouncementCreateRequest",
     "AnnouncementUpdateRequest",

@@ -5,7 +5,17 @@ import sqlmodel as sq
 from sqlmodel import Session
 
 from ...context import ctx
-from ...dao import Job, JobPriority, JobStatus, JobType, LanguageCode, OutputFormat, User, UserRole
+from ...dao import (
+    ActivityType,
+    Job,
+    JobPriority,
+    JobStatus,
+    JobType,
+    LanguageCode,
+    OutputFormat,
+    User,
+    UserRole,
+)
 from ...exceptions import ServerErrors
 from ...server.models import Paginated
 from ...utils.time_utils import current_timestamp
@@ -670,7 +680,9 @@ class JobService:
 
             sess.commit()
             sess.refresh(job)
-            return job
+
+        ctx.activity.record(user.id, ActivityType.REQUEST, job.id)
+        return job
 
     def _pending(
         self,

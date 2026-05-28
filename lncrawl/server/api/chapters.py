@@ -3,7 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
-from ...dao import Chapter, ChapterImage, Job, LanguageCode, User
+from ...dao import ActivityType, Chapter, ChapterImage, Job, LanguageCode, User
 from ..models import ReadChapterResponse
 from ..security import ensure_user
 
@@ -42,6 +42,9 @@ def read_chapter(
         description="Fetch content automatically if not available",
     ),
 ) -> ReadChapterResponse:
+    ctx.activity.record(user.id, ActivityType.CHAPTER, chapter_id)
+    if language:
+        ctx.activity.record(user.id, ActivityType.CHAPTER_TRANSLATION, chapter_id)
     return ctx.chapters.read(
         user,
         chapter_id,

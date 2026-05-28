@@ -4,7 +4,7 @@ from fastapi import APIRouter, Body, Path, Query, Security
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ...context import ctx
-from ...dao import User
+from ...dao import ActivityType, User
 from ...exceptions import ServerErrors
 from ..models import (
     CrawlerTestRequest,
@@ -24,7 +24,9 @@ router = APIRouter()
 )
 def list_sources(
     skip_rejected: bool = Query(default=False, help="Send true to skip rejected sources"),
+    user: User = Security(ensure_user),
 ):
+    ctx.activity.record(user.id, ActivityType.SOURCES, "sources")
     count = ctx.novels.list_domains()
     result = ctx.sources.list(
         include_rejected=not skip_rejected,
