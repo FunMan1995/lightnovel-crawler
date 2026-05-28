@@ -24,8 +24,6 @@ jobs:
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🔧 Set lowercase image name
         run: |

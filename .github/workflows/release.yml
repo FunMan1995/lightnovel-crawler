@@ -39,8 +39,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🧰 Install OpenSSL
         run: choco install -y --no-progress openssl
@@ -92,8 +90,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python
         uses: astral-sh/setup-uv@v7
@@ -136,8 +132,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python
         uses: astral-sh/setup-uv@v7
@@ -183,8 +177,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🐍 Install uv & Python
         uses: astral-sh/setup-uv@v7
