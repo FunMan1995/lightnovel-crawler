@@ -8,7 +8,6 @@ from ...context import ctx
 from ...dao import Job, JobPriority, JobStatus, JobType, LanguageCode, OutputFormat, User, UserRole
 from ...exceptions import ServerErrors
 from ...server.models import Paginated
-from ...server.tier import JOB_PRIORITY_LEVEL
 from ...utils.time_utils import current_timestamp
 from .utils import select_ancestors, select_descendants
 
@@ -635,14 +634,31 @@ class JobService:
         parent_id: Optional[str] = None,
         depends_on: Optional[str] = None,
     ) -> Job:
+        limit = ctx.tier.max_active_jobs(user)
         with ctx.db.session() as sess:
+            if parent_id is None and limit is not None:
+                active = (
+                    sess.scalar(
+                        sq.select(sq.func.count())
+                        .select_from(Job)
+                        .where(
+                            Job.user_id == user.id,
+                            sq.col(Job.parent_job_id).is_(None),
+                            sq.col(Job.is_done).is_(False),
+                        )
+                    )
+                    or 0
+                )
+                if active >= limit:
+                    raise ServerErrors.job_limit_reached
+
             job = Job(
                 type=type,
                 extra=data,
                 user_id=user.id,
                 depends_on=depends_on,
                 parent_job_id=parent_id,
-                priority=JOB_PRIORITY_LEVEL[user.tier],
+                priority=ctx.tier.job_priority(user),
             )
             sess.add(job)
 

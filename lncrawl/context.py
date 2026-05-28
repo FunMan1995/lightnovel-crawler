@@ -170,6 +170,12 @@ class __AppContext__:
         return PythonLanguageServer()
 
     @cached_property
+    def tier(self):
+        from .services.access import AccessManager
+
+        return AccessManager()
+
+    @cached_property
     def scheduler(self):
         from .services.scheduler import JobScheduler
 

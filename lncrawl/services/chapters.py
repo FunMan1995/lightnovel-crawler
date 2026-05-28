@@ -4,7 +4,7 @@ import sqlmodel as sq
 
 from ..context import ctx
 from ..core import Chapter as CrawlerChapter, PageSoup
-from ..dao import Chapter, Job, LanguageCode, User, UserTier, Volume
+from ..dao import Chapter, Job, LanguageCode, User, Volume
 from ..dao.chapter import ChapterTranslation
 from ..exceptions import ServerErrors
 from ..server.models import Paginated, ReadChapterResponse
@@ -179,7 +179,7 @@ class ChapterService:
         language: Optional[LanguageCode] = None,
     ) -> ReadChapterResponse:
         if auto_fetch is None:
-            auto_fetch = user.tier == UserTier.VIP
+            auto_fetch = ctx.tier.auto_fetch_enabled(user)
 
         chapter = self.get(chapter_id)
         ctx.history.add(user.id, chapter.id)

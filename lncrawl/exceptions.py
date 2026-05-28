@@ -110,6 +110,18 @@ class ServerErrors:
     full_novel_not_allowed = ServerError(
         status.HTTP_403_FORBIDDEN, "Full novel is not allowed for this user"
     )
+    tier_not_allowed = ServerError(
+        status.HTTP_403_FORBIDDEN, "This feature is not available for your tier"
+    )
+    job_limit_reached = ServerError(
+        status.HTTP_429_TOO_MANY_REQUESTS, "Active job limit reached for your tier"
+    )
+    library_limit_reached = ServerError(
+        status.HTTP_429_TOO_MANY_REQUESTS, "Library limit reached for your tier"
+    )
+    novel_limit_reached = ServerError(
+        status.HTTP_429_TOO_MANY_REQUESTS, "Novel limit per library reached for your tier"
+    )
 
     no_such_user = ServerError(status.HTTP_404_NOT_FOUND, "No such user")
     no_such_job = ServerError(status.HTTP_404_NOT_FOUND, "No such job")

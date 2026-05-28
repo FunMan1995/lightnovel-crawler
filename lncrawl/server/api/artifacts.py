@@ -4,7 +4,6 @@ from fastapi import APIRouter, Path, Query, Security
 
 from ...context import ctx
 from ...dao import Artifact, LanguageCode, OutputFormat, User
-from ...server.tier import ENABLED_FORMATS
 from ..models import Paginated
 from ..security import ensure_user
 
@@ -41,7 +40,7 @@ def list_artifacts(
 def get_enabled_formats(
     user: User = Security(ensure_user),
 ) -> List[OutputFormat]:
-    return list(sorted(ENABLED_FORMATS[user.tier]))
+    return list(sorted(ctx.tier.enabled_formats(user)))
 
 
 @router.get(
