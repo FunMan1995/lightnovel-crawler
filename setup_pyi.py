@@ -68,6 +68,7 @@ def gather_data_files():
 
 def gather_hidden_imports():
     hidden = [
+        "tkinter",
         "passlib.handlers.argon2",
     ]
 
