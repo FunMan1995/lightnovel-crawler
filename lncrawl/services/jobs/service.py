@@ -681,7 +681,9 @@ class JobService:
             sess.commit()
             sess.refresh(job)
 
-        ctx.activity.record(user.id, ActivityType.REQUEST, job.id)
+        if parent_id is None:
+            ctx.activity.record(user.id, ActivityType.REQUEST, job.id)
+
         return job
 
     def _pending(
