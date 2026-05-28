@@ -28,11 +28,6 @@ jobs:
           path: lncrawl/server/web
           token: ${{ secrets.LNCRAWL_PAT }}
 
-      - name: Strip dev-only files
-        run: |
-          rm -rf lncrawl/server/web/.git
-          find lncrawl/server/web -name "*.map" -delete
-
       - name: Commit and Push
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
