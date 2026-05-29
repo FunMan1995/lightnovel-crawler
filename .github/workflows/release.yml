@@ -22,6 +22,7 @@ jobs:
     uses: ./.github/workflows/web.yml
     permissions:
       contents: write
+    secrets: inherit
 
   build-docker:
     needs: [validate, sync-web]
