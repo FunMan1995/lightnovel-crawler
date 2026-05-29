@@ -18,6 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          ref: dev
           fetch-depth: 1
 
       - name: Fetch web build from lncrawl-web artifacts branch
