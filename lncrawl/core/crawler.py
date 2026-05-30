@@ -1,22 +1,20 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import hashlib
 import math
 import os
-from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Union
+
+from pydantic.networks import HttpUrl
 
 from ..context import ctx
 from ..exceptions import LNException
 from ..utils.file_tools import atomic_write
-from ..utils.imgen import generate_cover_image
 from ..utils.text_tools import format_title, normalize
 from ..utils.url_tools import extract_base
-from .cleaner import TextCleaner
 from .models import Chapter, Novel, SearchResult, Volume
-from .scraper import Scraper
-from .taskman import TaskManager
 
 
 class Crawler(ABC):
@@ -58,6 +56,10 @@ class Crawler(ABC):
             self.base_url = [self.base_url]
         if not origin or origin not in self.base_url:
             origin = self.base_url[0]
+
+        from .cleaner import TextCleaner
+        from .scraper import Scraper
+        from .taskman import TaskManager
 
         self.cleaner = TextCleaner()
         self.taskman = TaskManager(workers=workers)
@@ -161,6 +163,8 @@ class Crawler(ABC):
             os.utime(cover_file)
             return
 
+        from ..utils.imgen import generate_cover_image
+
         img = generate_cover_image()
         with atomic_write(cover_file) as tmp:
             img.save(tmp, "JPEG", optimized=True)
@@ -205,6 +209,7 @@ class Crawler(ABC):
         for index, chapter in enumerate(novel.chapters):
             chapter.crawler_version = crawler_version
             chapter.id = index + 1
+            chapter.url = HttpUrl(chapter.url).encoded_string()
             chapter.title = format_title(chapter.title) or f"Chapter {chapter.id}"
 
             if chapter.volume not in vol_id_map:
@@ -228,9 +233,9 @@ class Crawler(ABC):
         chapter.title = format_title(chapter.title)
         chapter.body = (chapter.body or "").strip()
         chapter.success = bool(chapter.body)
-        self.extract_images(chapter)
+        self._extract_images(chapter)
 
-    def extract_images(self, chapter: Chapter) -> None:
+    def _extract_images(self, chapter: Chapter) -> None:
         chapter.setdefault("images", {})
         if ctx.config.crawler.ignore_images or not chapter.body:
             return

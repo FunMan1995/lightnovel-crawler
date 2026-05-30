@@ -2,9 +2,9 @@ from typing import Optional
 
 import sqlmodel as sa
 
+from ..enums import UserRole, UserTier
 from ..utils.crypto_tools import generate_token
 from ._base import BaseTable
-from .enums import UserRole, UserTier
 
 
 class User(BaseTable, table=True):
@@ -28,6 +28,10 @@ class User(BaseTable, table=True):
         sa_column_kwargs={"server_default": sa.false()},
         description="Email verification status",
     )
+
+    @property
+    def is_admin(self):
+        return self.role == UserRole.ADMIN
 
 
 class UserToken(sa.SQLModel, table=True):

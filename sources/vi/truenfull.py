@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import logging
 from concurrent.futures import Future
+import logging
 from typing import List, Optional
 from urllib.parse import quote, urlencode
 

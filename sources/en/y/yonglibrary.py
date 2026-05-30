@@ -52,4 +52,4 @@ class YongLibraryCrawler(BrowserTemplate):
 
     def parse_summary(self, soup: PageSoup, novel: Novel) -> None:
         tag = soup.select_one(".insight-content")
-        novel.summary = (tag.find("p") or tag).text
+        novel.synopsis = (tag.find("p") or tag).text

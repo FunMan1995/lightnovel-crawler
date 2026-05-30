@@ -29,14 +29,14 @@ class MangaStreamTemplate(BrowserTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
-        first_li = soup.select_one(".eplister li")
+        first_li = tag.select_one(".eplister li")
         li_class = first_li.get_attr("class", "") if first_li else ""
         data_num = first_li.get_attr("data-num", "0") if first_li else "0"
-        chapters = soup.select(".eplister li a")
+        chapters = tag.select(".eplister li a")
         if data_num == "1" or "tseplsfrst" not in str(li_class):
             return reversed(list(chapters))
         else:

@@ -3,9 +3,9 @@
 Decryptor: https://github.com/Pioverpie/privatebin-api/blob/master/privatebinapi/download.py
 """
 
+from datetime import datetime
 import logging
 import re
-from datetime import datetime
 from urllib.parse import urlsplit
 
 import regex

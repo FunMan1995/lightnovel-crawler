@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import json
-import logging
-import os
-import time
-import uuid
 from datetime import datetime
 from decimal import Decimal
 from functools import cached_property
+import json
+import logging
+import os
 from pathlib import Path
+import time
 from typing import Annotated, Any, Callable, Dict, Optional, Type, TypeVar, Union, cast
+import uuid
 
 import dotenv
 import typer
@@ -31,9 +31,9 @@ DEFAULT_CONFIG_FILE = APP_DIR / "config.json"
 
 
 class Sensitive:
-    """Use with ``typing.Annotated`` on config property return types.
+    """Use with `typing.Annotated` on config property return types.
 
-    Properties marked this way are listed in the admin API with ``sensitive=True``.
+    Properties marked this way are listed in the admin API with `sensitive=True`.
     """
 
 
@@ -148,6 +148,16 @@ class Config(object):
         """Mail Settings."""
         return MailConfig(self)
 
+    @cached_property
+    def lsp(self):
+        """LSP Server Settings."""
+        return PythonLanguageServerConfig(self)
+
+    @cached_property
+    def translator(self):
+        """Translator Settings."""
+        return TranslatorConfig(self)
+
     # -------------------------------------------------------------- #
 
     def load(self, file: Optional[Path] = None) -> None:
@@ -211,7 +221,7 @@ class Config(object):
                 raise ValueError(f"{section}.{key} is not set")
         return _deserialize(sub[key], type(sub[key]))
 
-    def set(self, section: str, key: str, value: T) -> None:
+    def set(self, section: str, key: str, value: Any) -> None:
         sub: dict = self._data.setdefault(section, {})
         if sub.get(key) is not None:
             value = _deserialize(value, type(sub[key]))
@@ -249,7 +259,7 @@ class AppConfig(_Section):
         return (ROOT_DIR / "VERSION").read_text(encoding="utf8").strip()
 
     @cached_property
-    def output_path(self) -> Path:
+    def app_dir(self) -> Path:
         return APP_DIR
 
     @property
@@ -263,6 +273,19 @@ class AppConfig(_Section):
     @openai_key.setter
     def openai_key(self, v: str) -> None:
         self._set("openai_api_key", v)
+
+    @property
+    def github_token(self) -> Annotated[str, Sensitive]:
+        """Github Token.
+
+        Github token for creating automatic pull requests for sources.
+        You can get one from here: https://github.com/settings/personal-access-tokens
+        """
+        return self._get("github_token", "")
+
+    @github_token.setter
+    def github_token(self, v: str) -> None:
+        self._set("github_token", v)
 
     @property
     def admin_email(self) -> str:
@@ -289,6 +312,64 @@ class AppConfig(_Section):
     @admin_password.setter
     def admin_password(self, v: str) -> None:
         self._set("admin_password", v)
+
+
+# ------------------------------------------------------------------ #
+#                         Translator Section                         #
+# ------------------------------------------------------------------ #
+class TranslatorConfig(_Section):
+    section = "translator"
+
+    @property
+    def microsoft_translator_key(self) -> Annotated[str, Sensitive]:
+        """Microsoft Translator API Key.
+
+        Azure Cognitive Services key for the Translator resource. Free tier allows
+        2,000,000 characters per month. Get one from: https://portal.azure.com
+        """
+        return self._get("microsoft_translator_key", "")
+
+    @microsoft_translator_key.setter
+    def microsoft_translator_key(self, v: str) -> None:
+        self._set("microsoft_translator_key", v)
+
+    @property
+    def microsoft_translator_region(self) -> str:
+        """Microsoft Translator Region.
+
+        Azure region of your Translator resource, e.g. `eastus`. Required when using a
+        multi-service or regional key; leave empty for global keys.
+        """
+        return self._get("microsoft_translator_region", "")
+
+    @microsoft_translator_region.setter
+    def microsoft_translator_region(self, v: str) -> None:
+        self._set("microsoft_translator_region", v)
+
+    @property
+    def baidu_app_id(self) -> Annotated[str, Sensitive]:
+        """Baidu Translate App ID.
+
+        App ID for the Baidu Fanyi (translation) API. Particularly strong for Chinese,
+        Japanese, and Korean. Register at: https://fanyi-api.baidu.com
+        """
+        return self._get("baidu_app_id", "")
+
+    @baidu_app_id.setter
+    def baidu_app_id(self, v: str) -> None:
+        self._set("baidu_app_id", v)
+
+    @property
+    def baidu_secret_key(self) -> Annotated[str, Sensitive]:
+        """Baidu Translate Secret Key.
+
+        Secret key that pairs with your Baidu Translate App ID.
+        """
+        return self._get("baidu_secret_key", "")
+
+    @baidu_secret_key.setter
+    def baidu_secret_key(self, v: str) -> None:
+        self._set("baidu_secret_key", v)
 
 
 # ------------------------------------------------------------------ #
@@ -643,3 +724,81 @@ class MailConfig(_Section):
     @smtp_sender.setter
     def smtp_sender(self, v: str) -> None:
         self._set("smtp_sender", v)
+
+
+# ------------------------------------------------------------------ #
+#                   PythonLanguageServer Section                             #
+# ------------------------------------------------------------------ #
+
+
+class PythonLanguageServerConfig(_Section):
+    section = "lsp"
+
+    @property
+    def enabled(self) -> bool:
+        """LSP Server Enabled.
+
+        Start a python-lsp-server process alongside the web server so editors
+        can connect for code intelligence on crawler sources. Requires the
+        `lsp` optional dependency to be installed. Off by default.
+        """
+        return self._get("enabled", False)
+
+    @enabled.setter
+    def enabled(self, v: bool) -> None:
+        self._set("enabled", v)
+
+    @property
+    def host(self) -> str:
+        """LSP Server Host.
+
+        Address the language server binds to. Use `127.0.0.1` (default) to
+        allow only local connections, or `0.0.0.0` to accept remote clients.
+        Only applies to `tcp` mode; WebSocket mode always binds all interfaces.
+        """
+        return self._get("host", "127.0.0.1")
+
+    @host.setter
+    def host(self, v: str) -> None:
+        self._set("host", v)
+
+    @property
+    def port(self) -> int:
+        """LSP Server Port.
+
+        Network port for the language server. Setting it to 0 will choose
+        a random free port. Default is `0`.
+        """
+        return self._get("port", 0)
+
+    @port.setter
+    def port(self, v: int) -> None:
+        self._set("port", v)
+
+    @property
+    def max_sessions(self) -> int:
+        """LSP Max Simultaneous Sessions.
+
+        Maximum number of pylsp processes that may run at the same time.
+        Each WebSocket connection spawns one process, so this is effectively
+        the concurrent-user cap for the language server. Default is `3`.
+        """
+        return self._get("max_sessions", 3)
+
+    @max_sessions.setter
+    def max_sessions(self, v: int) -> None:
+        self._set("max_sessions", v)
+
+    @property
+    def idle_timeout(self) -> int:
+        """LSP Idle Timeout (seconds).
+
+        Seconds of inactivity after which an LSP session is automatically
+        closed. Activity is defined as any message in either direction.
+        Default is `1800` (30 minutes).
+        """
+        return self._get("idle_timeout", 1800)
+
+    @idle_timeout.setter
+    def idle_timeout(self, v: int) -> None:
+        self._set("idle_timeout", v)

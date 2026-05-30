@@ -32,8 +32,8 @@ class LegacyCrawler(CrawlerTemplate):
         self.is_rtl: bool = False
         self.novel_synopsis: str = ""
         self.novel_tags: List[str] = []
-        self.volumes: List[Volume] = []
-        self.chapters: List[Chapter] = []
+        self.volumes: List[Union[dict, Volume]] = []
+        self.chapters: List[Union[dict, Chapter]] = []
 
     def close(self) -> None:
         self._lock.abort()
@@ -151,8 +151,8 @@ class LegacyCrawler(CrawlerTemplate):
             novel.author = self.novel_author
             novel.synopsis = self.novel_synopsis
             novel.tags = self.novel_tags
-            novel.volumes = self.volumes
-            novel.chapters = self.chapters
+            novel.volumes = [Volume(**v) for v in self.volumes]
+            novel.chapters = [Chapter(**c) for c in self.chapters]
 
     def download_chapter(self, chapter: Chapter) -> None:
         chapter.body = self.download_chapter_body(chapter)

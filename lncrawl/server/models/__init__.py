@@ -1,3 +1,4 @@
+from .activity import UserActivityStats
 from .announcement import AnnouncementCreateRequest, AnnouncementUpdateRequest
 from .config import ConfigProperty, ConfigSection, ConfigUpdateRequest
 from .crawler import LoginData
@@ -9,15 +10,25 @@ from .feedback import (
 from .job import (
     FetchChaptersRequest,
     FetchImagesRequest,
-    FetchNovelRequest,
     FetchNovelsRequest,
     FetchVolumesRequest,
     MakeArtifactsRequest,
+    TranslateChaptersRequest,
+    TranslateNovelsRequest,
+    TranslateVolumesRequest,
 )
 from .library import LibraryCreateRequest, LibraryItem, LibraryUpdateRequest
 from .novel import ReadChapterResponse
 from .pagination import Paginated
-from .sources import AppInfo, CrawlerIndex, CrawlerInfo, SourceItem
+from .sources import (
+    AppInfo,
+    CrawlerIndex,
+    CrawlerInfo,
+    CrawlerTestRequest,
+    PRCreateRequest,
+    PRResponse,
+    SourceItem,
+)
 from .user import (
     CreateRequest,
     ForgotPasswordRequest,
@@ -27,12 +38,15 @@ from .user import (
     PasswordUpdateRequest,
     PutNotificationRequest,
     ResetPasswordRequest,
+    SendInviteRequest,
     SignupRequest,
     TokenResponse,
     UpdateRequest,
 )
 
 __all__ = [
+    # activity
+    "UserActivityStats",
     # announcement
     "AnnouncementCreateRequest",
     "AnnouncementUpdateRequest",
@@ -44,16 +58,21 @@ __all__ = [
     "AppInfo",
     "CrawlerInfo",
     "CrawlerIndex",
+    "CrawlerTestRequest",
     "SourceItem",
+    "PRCreateRequest",
+    "PRResponse",
     # crawler
     "LoginData",
     # job
-    "FetchNovelRequest",
     "FetchNovelsRequest",
     "FetchVolumesRequest",
     "FetchChaptersRequest",
     "FetchImagesRequest",
     "MakeArtifactsRequest",
+    "TranslateNovelsRequest",
+    "TranslateVolumesRequest",
+    "TranslateChaptersRequest",
     # library
     "LibraryCreateRequest",
     "LibraryUpdateRequest",
@@ -74,6 +93,7 @@ __all__ = [
     "ForgotPasswordRequest",
     "ResetPasswordRequest",
     "PutNotificationRequest",
+    "SendInviteRequest",
     # feedback
     "FeedbackCreateRequest",
     "FeedbackUpdateRequest",

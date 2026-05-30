@@ -25,7 +25,11 @@ def extract_host(url: str) -> str:
     parsed = urlparse(url)
 
     host = parsed.hostname
-    port = parsed.port
+    port = str(parsed.port or "")
+    if not host:
+        host = parsed.path.split("/")[0]
+        if ":" in host:
+            host, port = host.split(":")
     if not host:
         return ""
 

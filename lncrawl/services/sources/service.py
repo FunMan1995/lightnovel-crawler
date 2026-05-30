@@ -1,26 +1,29 @@
+import asyncio
 import logging
 from pathlib import Path
-from threading import Event
+import threading
+from threading import Event, Thread
+import traceback
 from typing import Dict, List, Optional, Type
 
 from ...context import ctx
-from ...core.crawler import Crawler
-from ...core.taskman import TaskManager
+from ...core import Crawler
 from ...exceptions import ServerErrors
 from ...server.models import CrawlerIndex, CrawlerInfo, SourceItem
+from ...utils.event_lock import EventLock
 from ...utils.fts_store import FTSStore
 from ...utils.text_tools import normalize
 from ...utils.url_tools import extract_host, normalize_url
 from .helper import (
+    batch_import,
     create_crawler_info,
-    fetch_online_source,
-    import_crawlers,
+    create_source_item,
     load_offline_source,
     save_source,
 )
+from .tester import run_crawler_test
 
 logger = logging.getLogger(__name__)
-_crawlers_cache: Dict[Type[Crawler], Crawler] = {}
 
 
 class Sources:
@@ -28,13 +31,17 @@ class Sources:
         self._signal: Event
         self._store: FTSStore
         self._index: CrawlerIndex
-        self._taskman: TaskManager
+        self._sync_thread: Thread
+        self._sync_lock = EventLock()
         self.rejected: Dict[str, str] = {}  # Map of host -> rejection reason
-        self.crawlers: Dict[str, Type[Crawler]] = {}  # Map of host/id -> crawler
+        self.crawlers: Dict[str, Type[Crawler]] = {}  # Map of cid -> crawler
+        self.info: Dict[str, CrawlerInfo] = {}  # Map of cid -> crawler info
+        self.sources: Dict[str, SourceItem] = {}  # Map of host -> source item
+        self._cache: Dict[str, Crawler] = {}  # Map of cid -> crawler instance
 
     @property
     def version(self) -> int:
-        if not self._index:
+        if not hasattr(self, "_index"):
             raise ServerErrors.source_not_loaded
         return self._index.v
 
@@ -43,41 +50,63 @@ class Sources:
         return self.rejected.get(host)
 
     def close(self):
+        self._sync_lock.abort()
         if hasattr(self, "_signal"):
             self._signal.set()
         if hasattr(self, "_store"):
             self._store.close()
-        if hasattr(self, "_taskman"):
-            self._taskman.close()
         if hasattr(self, "_index"):
             del self._index
         self.rejected.clear()
-        self.crawlers.clear()
-
-    def load(self, sync_remote=True):
-        self._signal = Event()
-        self._store = FTSStore()
-        self._taskman = TaskManager(10)
-
-        # load offline sources first
-        self.load_index(load_offline_source(sync_remote))
-
-        # dynamically import all crawlers
-        self._taskman.submit_task(
-            self.load_crawlers,
-            *ctx.config.crawler.local_sources.glob("**/*.py"),
-            *ctx.config.crawler.user_sources.glob("**/*.py"),
-        )
-
-        # run background task get online update
-        if sync_remote:
-            self._taskman.submit_task(self.update)
+        self.sources.clear()
 
     def ensure_load(self):
-        self._taskman.as_completed(
-            disable_bar=True,
-            signal=self._signal,
-        )
+        if hasattr(self, "_sync_thread") and self._sync_thread:
+            self._sync_thread.join()
+            del self._sync_thread
+
+    def load(self, sync_remote=True):
+        with self._sync_lock:
+            self._signal = Event()
+            self._store = FTSStore()
+
+            # load offline sources first
+            self.load_index(load_offline_source(sync_remote))
+
+            # check online sources update
+            if sync_remote:
+                t = Thread(target=self.update)
+                t.start()
+                self._sync_thread = t
+
+    def update(self) -> None:
+        with self._sync_lock:
+            logger.info(f"Sync online sources (current={self.version})")
+            online_index = ctx.github.fetch_online_source()
+            if not hasattr(self, "_index"):
+                return
+            if online_index.v <= self._index.v:
+                logger.info("Sources are up to date")
+                return
+
+            # save the latest index
+            user_file = ctx.config.crawler.user_index_file
+            save_source(user_file, online_index)
+
+            # download latest source files
+            for id, source in online_index.crawlers.items():
+                current = self._index.crawlers.get(id)
+                if current and current.version >= source.version:
+                    continue
+                try:
+                    ctx.github.download_online_source(source.file_path)
+                    logger.debug(f"Downloaded source: {source.file_path}")
+                except Exception:
+                    logger.warning(f"Failed to download source: {source.file_path}", exc_info=True)
+
+            # load the online index
+            self.load_index(online_index)
+            logger.info("Source synced.")
 
     def load_index(self, index: CrawlerIndex) -> None:
         self._index = index
@@ -88,89 +117,50 @@ class Sources:
             host = extract_host(url)
             self.rejected[host] = reason
 
-    def load_crawlers(self, *files: Path) -> List[CrawlerInfo]:
-        futures = [self._taskman.submit_task(import_crawlers, file) for file in files]
-        return [
+        # dynamically import all crawlers
+        self.info.clear()
+        self.crawlers.clear()
+        self.sources.clear()
+        self._cache.clear()
+        self.load_crawlers(
+            *ctx.config.crawler.local_sources.glob("**/*.py"),
+            *ctx.config.crawler.user_sources.glob("**/*.py"),
+        )
+
+    def load_crawlers(self, *files: Path):
+        for crawler in batch_import(*files):
             self.add_crawler(crawler)
-            for crawlers in self._taskman.resolve(
-                futures,
-                disable_bar=True,
-                signal=self._signal,
-            )
-            if crawlers
-            for crawler in crawlers
-            if issubclass(crawler, Crawler)
-        ]
 
-    def add_crawler(self, crawler: Type[Crawler]) -> CrawlerInfo:
-        sid = getattr(crawler, "__id__")  # crawler id
-        file = getattr(crawler, "__file__")  # file path
-        urls = getattr(crawler, "base_url")  # always a list
-        version = getattr(crawler, "version")  # last edit time
-
+    def add_crawler(self, crawler: Type[Crawler]):
         # add to index if not available
-        if sid in self._index.crawlers:
-            info = self._index.crawlers[sid]
+        name = crawler.__name__
+        cid = getattr(crawler, "__id__")  # crawler id
+        if cid in self._index.crawlers:
+            info = self._index.crawlers[cid]
         else:
-            logger.info(f"Found non-indexed crawler: {crawler.__name__}")
+            logger.info(f"Found non-indexed crawler: {name}")
             info = create_crawler_info(crawler)
-            self._index.crawlers[sid] = info
+            self._index.crawlers[cid] = info
 
-        # update crawlers list with the latest crawler
-        def _set(key: str):
-            if key in self.crawlers:
-                if version < getattr(self.crawlers[key], "version"):
-                    return  # skip if current crawler is the latest
-            self.crawlers[key] = crawler
+        # skip this crawler if it is not the latest
+        if cid in self.info and info.version < self.info[cid].version:
+            return
+        self.info[cid] = info
+        self.crawlers[cid] = crawler
 
-        _set(sid)
-        for url in urls:
-            _set(extract_host(url))
+        # load source items
+        for url in info.base_urls:
+            self.add_source(url, info)
+
+    def add_source(self, url: str, info: CrawlerInfo):
+        item = create_source_item(url, info, self.rejected)
+        # skip this item if it is not the latest
+        if item.domain in self.sources and item.version < self.sources[item.domain].version:
+            return
+        self.sources[item.domain] = item
 
         # add keys for searching
-        self._store.insert(sid, sid)
-        self._store.insert(normalize(file), sid)
-        self._store.insert(normalize(crawler.__name__), sid)
-        for url in urls:
-            self._store.insert(normalize_url(url), sid)
-        return info
-
-    def update(self) -> None:
-        assert self._index
-        logger.info("Sync online sources")
-        online_index = fetch_online_source()
-        if online_index.v <= self._index.v:
-            logger.info("No latest updates found")
-            return
-
-        # save the latest index
-        user_file = ctx.config.crawler.user_index_file
-        save_source(user_file, self._index)
-
-        # load the online index
-        self.load_index(online_index)
-
-        # download updated source files
-        futures = []
-        for id, source in online_index.crawlers.items():
-            current = self._index.crawlers.get(id)
-            if current and current.version >= source.version:
-                continue
-            user_sources = ctx.config.crawler.user_sources.parent
-            dst_file = (user_sources / source.file_path).resolve()
-            f = self._taskman.submit_task(ctx.http.download, source.url, dst_file)
-            futures.append(f)
-
-        # wait for completion
-        for dst_file in self._taskman.resolve(
-            futures,
-            desc="Downloading",
-            unit="source",
-            signal=self._signal,
-        ):
-            if dst_file:
-                self.load_crawlers(dst_file)
-        logger.info("Source synced.")
+        self._store.insert(normalize_url(url), item.domain)
 
     def list(
         self,
@@ -183,123 +173,109 @@ class Sources:
         has_manga: Optional[bool] = None,
     ) -> List[SourceItem]:
         self.ensure_load()
-        if not self._index:
-            raise ServerErrors.source_not_loaded
+        domains = self._store.search(normalize(query)) if query else None
+        if domains is not None and len(domains) == 0:
+            return []
+        return [
+            item
+            for item in self.sources.values()
+            if all(
+                [
+                    domains is None or item.domain in domains,
+                    has_mtl is None or item.has_mtl is has_mtl,
+                    has_manga is None or item.has_manga is has_manga,
+                    can_login is None or item.can_login is can_login,
+                    can_search is None or item.can_search is can_search,
+                    include_rejected or not item.is_disabled,
+                ]
+            )
+        ]
 
-        if query:
-            query = normalize(query)
-            ids = self._store.search(query)
-            infos = [self._index.crawlers[id] for id in ids]
-        else:
-            infos = list(self._index.crawlers.values())
-
-        result: List[SourceItem] = []
-        for info in infos:
-            crawler = self.crawlers.get(info.id)
-            if not crawler:
-                continue
-
-            if can_search is not None and info.can_search != can_search:
-                continue
-            if can_login is not None and info.can_login != can_login:
-                continue
-            if has_mtl is not None and info.has_mtl != has_mtl:
-                continue
-            if has_manga is not None and info.has_manga != has_manga:
-                continue
-
-            urls = info.base_urls
-            if query:
-                urls = [url for url in info.base_urls if query in normalize(url)] or info.base_urls
-
-            language = info.file_path.split("/")[1]
-            for url in urls:
-                domain = extract_host(url)
-                is_disabled = domain in self.rejected
-                if not include_rejected and is_disabled:
-                    continue
-
-                item = SourceItem(
-                    url=url,
-                    domain=domain,
-                    language=language,
-                    version=info.version,
-                    has_manga=info.has_manga,
-                    has_mtl=info.has_mtl,
-                    is_disabled=is_disabled,
-                    disable_reason=self.rejected.get(domain, "No reason provided"),
-                    can_search=info.can_search,
-                    can_login=info.can_login,
-                    total_commits=info.total_commits,
-                    contributors=info.contributors,
-                    # Excluded fields
-                    info=info,
-                    crawler=crawler,
-                )
-                result.append(item)
-        return result
-
-    def get_info(self, query: str) -> Optional[CrawlerInfo]:
-        if query in self._index.crawlers:
-            return self._index.crawlers[query]
-        elif query in self.crawlers:
-            id = getattr(self.crawlers[query], "__id__")
-            return self._index.crawlers[id]
-        else:
-            ids = self._store.search(normalize(query))
-            if len(ids) != 1:
-                return None
-            return self._index.crawlers[ids[0]]
-
-    def get_crawler(self, url: str) -> Type[Crawler]:
-        self.ensure_load()
-        if not self._index:
-            raise ServerErrors.source_not_loaded
-
+    def get_domain(self, url: str) -> str:
         host = extract_host(url)
         if not host:
             raise ServerErrors.invalid_url
         if host in self.rejected:
             raise ServerErrors.host_rejected.with_extra(self.rejected[host])
-        if host not in self.crawlers:
-            raise ServerErrors.no_crawler.with_extra(host)
+        return host
 
-        constructor = self.crawlers[host]
-        setattr(constructor, "url", url)
-        return constructor
+    def get_source(self, domain: str) -> SourceItem:
+        self.ensure_load()
+        if domain.startswith("www."):
+            domain = domain[4:]
+        source = self.sources.get(domain)
+        if not source:
+            raise ServerErrors.no_crawler.with_extra(source)
+        return source
+
+    def get_info(self, domain: str) -> CrawlerInfo:
+        source = self.get_source(domain)
+        return self.info[source.crawler_id]
+
+    def get_crawler(self, domain: str) -> Type[Crawler]:
+        source = self.get_source(domain)
+        return self.crawlers[source.crawler_id]
+
+    def find_crawler(self, url: str) -> Type[Crawler]:
+        self.ensure_load()
+        return self.get_crawler(self.get_domain(url))
 
     def init_crawler(
         self,
-        constructor: Type[Crawler],
-        disable_logger=not ctx.logger.is_debug,
+        url: str,
         workers: Optional[int] = None,
         parser: Optional[str] = None,
         renew: bool = False,
     ) -> Crawler:
-        if constructor in _crawlers_cache:
+        domain = self.get_domain(url)
+        source = self.get_source(domain)
+        cid = source.crawler_id
+        constructor = self.crawlers[cid]
+        if constructor in self._cache:
             if renew:
-                _crawlers_cache.pop(constructor).close()
+                self._cache.pop(cid).close()
             else:
-                return _crawlers_cache[constructor]
-
-        url = getattr(constructor, "url")
-        logger.debug(f"Creating crawler instance for {url}")
-
-        # disable logging
-        if disable_logger:
-            module = getattr(constructor, "__module_obj__")
-            setattr(module, "print", lambda *a, **k: None)
-            setattr(
-                module, "logger", type("", (), {"__getattr__": lambda *n: lambda *a, **k: None})()
-            )
+                return self._cache[cid]
 
         # create instance
+        ctx.logger.debug(f"Creating crawler instance for {url}")
         crawler = constructor(
-            origin=url,
+            origin=source.url,
             workers=workers,
             parser=parser,
         )
-        _crawlers_cache[constructor] = crawler
-
         crawler.initialize()
+
+        self._cache[cid] = crawler
         return crawler
+
+    async def test_source(self, url: str, content: str):
+        # WARNING: This function executes arbitrary Python source code directly in the
+        # running process. It is intended solely for trusted developer use. Never pass
+        # unverified or user-supplied content — doing so is a critical security risk
+        # (remote code execution). USE WITH EXTREME CAUTION.
+        event = Event()
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue[str] = asyncio.Queue()
+
+        def emit(item: str = "") -> None:
+            loop.call_soon_threadsafe(queue.put_nowait, item + "\n")
+
+        def run():
+            try:
+                run_crawler_test(url, content, emit)
+                emit("\nTEST PASSED!")
+            except Exception as e:
+                emit(f"<!> {repr(e)}\n{traceback.format_exc()}")
+                emit("\nTEST FAILED!")
+            finally:
+                event.set()
+                emit("END")
+
+        threading.Thread(target=run, daemon=True).start()
+
+        while True:
+            item = await queue.get()
+            if event.is_set() and item == "END\n":
+                break
+            yield item

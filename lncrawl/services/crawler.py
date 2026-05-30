@@ -6,12 +6,10 @@ from pydantic import HttpUrl
 from sqlmodel import select
 
 from ..context import ctx
-from ..core import Chapter as CrawlerChapter
-from ..core import Crawler
-from ..core import Novel as CrawlerNovel
-from ..core.models import get_extras
+from ..core import Chapter as CrawlerChapter, Crawler, Novel as CrawlerNovel
 from ..dao import Chapter, ChapterImage, Novel
 from ..exceptions import ServerErrors
+from ..utils.url_tools import extract_host
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +19,7 @@ class CrawlerService:
         pass
 
     def get_crawler(self, user_id: str, novel_url: str):
-        constructor = ctx.sources.get_crawler(novel_url)
-        crawler = ctx.sources.init_crawler(constructor)
+        crawler = ctx.sources.init_crawler(novel_url)
         can_login = getattr(crawler, "can_login", False)
         logged_in = getattr(crawler, "__logged_in__", False)
         if can_login and not logged_in:
@@ -67,15 +64,16 @@ class CrawlerService:
             if not novel:
                 novel = Novel(
                     url=novel_url,
-                    domain=url.host,
                     title=model.title,
                     cover_url=model.cover_url,
+                    domain=extract_host(novel_url),
                 )
 
             # update novel
             novel.title = model.title
             novel.authors = model.author
             novel.cover_url = model.cover_url
+            novel.domain = extract_host(novel_url)
             novel.manga = model.is_manga or crawler.has_manga
             novel.mtl = model.is_mtl or crawler.has_mtl
             novel.synopsis = model.synopsis
@@ -84,7 +82,7 @@ class CrawlerService:
             novel.language = model.language
             novel.volume_count = len(model.volumes)
             novel.chapter_count = len(model.chapters)
-            novel.extra.update(get_extras(model))
+            novel.extra.update(model.get_extras())
             sess.add(novel)
             sess.commit()
 
@@ -121,7 +119,10 @@ class CrawlerService:
     ) -> Chapter:
         chapter = ctx.chapters.get(chapter_id)
         novel = ctx.novels.get(chapter.novel_id)
-        url = HttpUrl(chapter.url)
+        try:
+            url = HttpUrl(chapter.url)
+        except Exception:
+            raise ServerErrors.invalid_url
         if not url.host:
             raise ServerErrors.invalid_url
 
@@ -160,7 +161,7 @@ class CrawlerService:
         with ctx.db.session() as sess:
             chapter.is_done = True
             chapter.title = model.title
-            chapter.extra.update(get_extras(model))
+            chapter.extra.update(model.get_extras())
             sess.add(chapter)
             sess.commit()
 
@@ -177,7 +178,10 @@ class CrawlerService:
     ) -> ChapterImage:
         image = ctx.images.get(image_id)
         novel = ctx.novels.get(image.novel_id)
-        url = HttpUrl(image.url)
+        try:
+            url = HttpUrl(image.url)
+        except Exception:
+            raise ServerErrors.invalid_url
         if not url.host:
             raise ServerErrors.invalid_url
 

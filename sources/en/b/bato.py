@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import base64
+from hashlib import md5
 import json
 import logging
 import re
-from hashlib import md5
 
 from Crypto.Cipher import AES
 

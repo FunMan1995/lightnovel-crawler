@@ -7,12 +7,12 @@ Create Date: 2026-03-19 21:33:54.189838
 
 from typing import Sequence, Tuple, Union
 
-import sqlmodel as sa
 from alembic import op
+from box import Box
+import sqlmodel as sa
 
 from lncrawl.context import ctx
 from lncrawl.core import TaskManager
-from lncrawl.dao.artifact import Artifact
 
 # revision identifiers, used by Alembic.
 revision: str = "16272c44ed84"
@@ -31,7 +31,7 @@ def upgrade() -> None:
     conn = op.get_bind()
     executor = TaskManager(15)
 
-    def get_size(artifact: Artifact) -> Tuple[str, int]:
+    def get_size(artifact: Box) -> Tuple[str, int]:
         file = ctx.files.resolve(artifact.output_file)
         file_size = file.stat().st_size if file.is_file() else 0
         return (artifact.id, file_size)
@@ -39,7 +39,7 @@ def upgrade() -> None:
     tasks = [
         executor.submit_task(
             get_size,
-            Artifact(
+            Box(
                 id=row[0],
                 novel_id=row[1],
                 job_id=row[2],

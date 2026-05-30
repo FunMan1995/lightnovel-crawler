@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
 import re
-from typing import Iterable, Tuple
+from typing import Iterable, Optional, Tuple
 from urllib.parse import quote_plus, urlencode
 
-from lncrawl.core import BrowserTemplate, Chapter, Novel, PageSoup
+from lncrawl.core import BrowserTemplate, Chapter, Novel, PageSoup, Volume
 from lncrawl.exceptions import LNException
 
 logger = logging.getLogger(__name__)
@@ -47,13 +47,18 @@ class NoveLightCrawler(BrowserTemplate):
 
         return book_id, csrf
 
-    def parse_chapter_tags(self, soup: PageSoup, novel: Novel) -> Iterable[PageSoup]:
-        book_id, csrf = self._extract_book_tokens(soup)
+    def select_chapter_tags(
+        self,
+        tag: PageSoup,
+        novel: Novel,
+        volume: Optional[Volume] = None,
+    ) -> Iterable[PageSoup]:
+        book_id, csrf = self._extract_book_tokens(tag)
         novel.book_id = book_id
         novel.csrf = csrf
 
         encountered_paid_chapter = False
-        chapters_lists = soup.select(self.chapter_list_selector)
+        chapters_lists = tag.select(self.chapter_list_selector)
         for page in self.taskman.progress_bar(
             reversed(chapters_lists),
             desc="Chapters",
@@ -90,7 +95,7 @@ class NoveLightCrawler(BrowserTemplate):
         }
         url = chapter.url.replace("chapter", "ajax/read-chapter")
         data = self.scraper.get_json(url, headers=headers)
-        soup = data["content"]
+        soup = self.scraper.make_soup(data["content"])
         contents = soup.select_one(".chapter-text")
         self.cleaner.clean_contents(contents)
         chapter.body = contents.inner_html

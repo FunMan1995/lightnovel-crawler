@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+from concurrent import futures
 import logging
 import re
-from concurrent import futures
 
 import execjs
 

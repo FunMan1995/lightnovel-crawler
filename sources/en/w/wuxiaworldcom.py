@@ -7,8 +7,8 @@ from pyease_grpc import RpcSession
 from requests.utils import CaseInsensitiveDict
 
 from lncrawl.core import BrowserTemplate, Chapter, Novel, Volume
+from lncrawl.core.browser import By
 from lncrawl.exceptions import FallbackToBrowser, ScraperErrorGroup
-from lncrawl.webdriver.elements import By
 
 logger = logging.getLogger(__name__)
 
@@ -60,9 +60,10 @@ class WuxiaworldComCrawler(BrowserTemplate):
                 self.browser.wait("//h2[normalize-space()='Your Profile']", By.XPATH, 10)
                 self.browser.find("//h2[normalize-space()='Your Profile']", By.XPATH)
                 if self.browser.local_storage.has(self.localstorageuser):
-                    self.bearer_token = "{token_type} {access_token}".format(
-                        **json.loads(self.browser.local_storage[self.localstorageuser])
-                    )
+                    user = self.browser.local_storage.get(self.localstorageuser)
+                    if not user:
+                        raise Exception("No localstorageuser in localstorage")
+                    self.bearer_token = "{token_type} {access_token}".format(**json.loads(user))
             except Exception as e:
                 logger.info("login Email: Failed", e)
 

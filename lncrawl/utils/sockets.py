@@ -1,13 +1,13 @@
 import socket
 
 
-def free_port(host="127.0.0.1") -> int:
+def free_port(host: str = "127.0.0.1", desired_port: int = 0) -> int:
     """
-    Determines a free port using sockets.
+    Returns desired_port if it is free, otherwise returns a random free port.
     """
-    free_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    free_socket.bind((host, 0))
-    free_socket.listen(5)
-    port: int = free_socket.getsockname()[1]
-    free_socket.close()
-    return port
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind((host, desired_port))
+        except OSError:
+            s.bind((host, 0))
+        return s.getsockname()[1]

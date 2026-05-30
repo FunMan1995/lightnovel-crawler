@@ -1,10 +1,10 @@
+from contextlib import contextmanager
 import logging
 import os
+from pathlib import Path
 import shlex
 import subprocess
 import tempfile
-from contextlib import contextmanager
-from pathlib import Path
 from typing import Iterator, Union
 
 from slugify import slugify
@@ -21,9 +21,6 @@ def atomic_write(path: Union[str, Path], mode: str = "wb") -> Iterator:
     On context exit the temp file is renamed onto the target with `os.replace`,
     which is atomic on POSIX and Windows. On exception the temp file is removed
     and the original (if any) is left untouched.
-
-    Avoids the Windows "[Errno 13] Permission denied" issue you get when
-    reopening a `tempfile.NamedTemporaryFile` by path while it is still open.
     """
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -110,7 +107,10 @@ def safe_filename(name: str) -> str:
             name,
             max_length=255,
             separator=" ",
-            regex_pattern=r'[#<>:"/\\|?*\x00-\x1F]',
+            # Windows forbidden: < > : " / \ | ? *
+            # URL reserved/special: # % & ; = @ ^ ` { } !
+            # Control chars: \x00-\x1F (C0) and \x7F (DEL)
+            regex_pattern=r'[<>:"/\\|?*#%&+;=@^`{}!\x00-\x1F\x7F]',
         ).strip(" .")
         or "untitled"
     )

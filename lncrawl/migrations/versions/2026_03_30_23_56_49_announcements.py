@@ -7,8 +7,8 @@ Create Date: 2026-03-30 23:56:49.553925
 
 from typing import Sequence, Union
 
-import sqlmodel as sa
 from alembic import op
+import sqlmodel as sa
 from sqlmodel.sql.sqltypes import AutoString
 
 # revision identifiers, used by Alembic.

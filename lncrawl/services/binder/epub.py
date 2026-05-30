@@ -1,13 +1,14 @@
 import logging
-import re
 from pathlib import Path
+import re
 from threading import Event
+from typing import Optional
 
 from ebooklib import epub  # type: ignore
 
 from ...assets.epub import epub_chapter_xhtml, epub_cover_xhtml, epub_style_css
 from ...context import ctx
-from ...dao import Artifact, Chapter, Novel, Volume
+from ...dao import Artifact, Chapter, LanguageCode, Novel, Volume
 from ...exceptions import AbortedException
 
 logger = logging.getLogger(__name__)
@@ -95,10 +96,15 @@ def build_volume(volume: Volume) -> epub.EpubHtml:
     return item
 
 
-def build_chapter(chapter: Chapter) -> epub.EpubHtml:
-    if chapter.is_available:
+def build_chapter(chapter: Chapter, language: Optional[LanguageCode]) -> epub.EpubHtml:
+    text: str = ""
+    if language:
+        translated = ctx.chapters.get_chapter_translation(chapter, language)
+        if translated and translated.is_available:
+            text = ctx.files.load_text(translated.content_file)
+    elif chapter.is_available:
         text = ctx.files.load_text(chapter.content_file)
-    else:
+    if not text:
         text = "<p><em>No content available</em></p>"
     content = RE_WHITESPACE.sub(
         "",
@@ -130,7 +136,9 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
     toc = []
     spine = []
     book = epub.EpubBook()
-    novel = ctx.novels.get(artifact.novel_id)
+
+    language = LanguageCode(artifact.language) if artifact.language else None
+    novel = ctx.novels.get(artifact.novel_id, language)
 
     # add novel metadata
     book.set_identifier(novel.id)
@@ -138,7 +146,7 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
     if novel.authors:
         book.add_author(novel.authors)
     if novel.language:
-        book.set_language(novel.language)
+        book.set_language(artifact.language or novel.language)
     if novel.synopsis:
         book.add_metadata("DC", "description", novel.synopsis)
     if novel.rtl:
@@ -147,9 +155,10 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
         book.add_metadata("DC", "subject", tag)
 
     # add series metadata
+    group_position = max(1, (novel.updated_at - novel.created_at) // 1000)
     book.add_metadata(None, "meta", "series", {"property": "collection-type"})
     book.add_metadata(None, "meta", novel.title, {"property": "belongs-to-collection"})
-    book.add_metadata(None, "meta", str(novel.updated_at), {"property": "group-position"})
+    book.add_metadata(None, "meta", str(group_position), {"property": "group-position"})
 
     # add template
     book.set_template("cover", epub_cover_xhtml())
@@ -191,15 +200,15 @@ def make_epub(working_dir: Path, artifact: Artifact, signal=Event(), **kwargs) -
     # add volumes and chapters pages
     if signal.is_set():
         raise AbortedException()
-    for volume in ctx.volumes.list(novel_id=artifact.novel_id):
+    for volume in ctx.volumes.list(artifact.novel_id, language):
         if signal.is_set():
             raise AbortedException()
 
         volume_contents = []
-        for chapter in ctx.chapters.list(volume_id=volume.id):
+        for chapter in ctx.chapters.list(volume_id=volume.id, language=language):
             if not chapter.is_available:
                 continue
-            chapter_item = build_chapter(chapter)
+            chapter_item = build_chapter(chapter, language)
             volume_contents.append(chapter_item)
 
         if not volume_contents:

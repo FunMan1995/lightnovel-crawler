@@ -3,18 +3,17 @@
 Build lightnovel-crawler source index to use for update checking.
 """
 
+from datetime import datetime, timezone
 import gzip
-import hashlib
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import subprocess
 import sys
-import time
-from datetime import datetime, timezone
-from pathlib import Path
 from threading import Event
+import time
 from typing import Any, Dict, List
 from urllib.parse import quote_plus, unquote_plus
 
@@ -27,6 +26,7 @@ try:
     from lncrawl.context import ctx
     from lncrawl.core import TaskManager
     from lncrawl.server.models import CrawlerInfo
+    from lncrawl.services.sources.helper import batch_import, create_crawler_info
 except ImportError:
     raise
 
@@ -222,17 +222,11 @@ def process_contributors(history):
 
 
 def process_info(info: CrawlerInfo):
-    py_file = info.local_file
-    relative_path = py_file.relative_to(WORKDIR).as_posix()
-    logger.info(f"[cyan]{info.id}[/cyan] {relative_path}")
-
-    info.md5 = hashlib.md5(py_file.read_bytes()).hexdigest()
-    info.url = f"{FILE_DOWNLOAD_URL}/{REPO_BRANCH}/{relative_path}"
-
-    history = git_history(relative_path)
+    logger.info(f"[cyan]{info.id}[/cyan] {info.file_path}")
+    history = git_history(info.file_path)
     if history:
-        info.total_commits = len(history)
         info.version = history[0]["time"]
+        info.total_commits = len(history)
         info.contributors = process_contributors(history)
 
     INDEX_DATA["crawlers"][info.id] = info.model_dump()
@@ -249,7 +243,8 @@ futures = []
 visited = set()
 taskman = TaskManager(42)
 ctx.sources._taskman = taskman
-for info in ctx.sources.load_crawlers(*sorted(SOURCES_FOLDER.glob("**/*.py"))):
+for crawler in batch_import(*sorted(SOURCES_FOLDER.glob("**/*.py"))):
+    info = create_crawler_info(crawler)
     if info.id in visited:
         continue
     visited.add(info.id)

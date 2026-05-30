@@ -3,7 +3,10 @@ from typing import List
 from fastapi import APIRouter, Body
 
 from ...context import ctx
-from ..models.config import ConfigSection, ConfigUpdateRequest
+from ..models import (
+    ConfigSection,
+    ConfigUpdateRequest,
+)
 
 # The root router
 router = APIRouter()

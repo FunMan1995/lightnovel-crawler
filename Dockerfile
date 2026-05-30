@@ -13,7 +13,7 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --frozen --all-extras --all-groups
 
 #------------------------------------------------
 # Runtime
@@ -23,6 +23,7 @@ FROM ${BASE_IMAGE}
 WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
+COPY pyproject.toml uv.lock ./
 COPY lncrawl ./lncrawl
 COPY sources ./sources
 

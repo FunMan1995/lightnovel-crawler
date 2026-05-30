@@ -1,5 +1,5 @@
-import logging
 from functools import cached_property
+import logging
 from pathlib import Path
 from typing import Optional, Union
 
@@ -14,10 +14,22 @@ class __AppContext__:
         return Config()
 
     @cached_property
+    def activity(self):
+        from .services.activity import UserActivityService
+
+        return UserActivityService()
+
+    @cached_property
     def admin(self):
         from .services.admin import AdminService
 
         return AdminService()
+
+    @cached_property
+    def github(self):
+        from .services.github import GitHubService
+
+        return GitHubService()
 
     @cached_property
     def logger(self):
@@ -66,6 +78,12 @@ class __AppContext__:
         from .services.novels import NovelService
 
         return NovelService()
+
+    @cached_property
+    def recommendations(self):
+        from .services.recommendations import RecommendationService
+
+        return RecommendationService()
 
     @cached_property
     def tags(self):
@@ -134,6 +152,12 @@ class __AppContext__:
         return AnnouncementService()
 
     @cached_property
+    def translator(self):
+        from .services.translators import TranslationService
+
+        return TranslationService()
+
+    @cached_property
     def crawler(self):
         from .services.crawler import CrawlerService
 
@@ -144,6 +168,18 @@ class __AppContext__:
         from .services.binder import BinderService
 
         return BinderService()
+
+    @cached_property
+    def lsp(self):
+        from .services.lsp import PythonLanguageServer
+
+        return PythonLanguageServer()
+
+    @cached_property
+    def tier(self):
+        from .services.access import AccessManager
+
+        return AccessManager()
 
     @cached_property
     def scheduler(self):
@@ -160,10 +196,18 @@ class __AppContext__:
 
     def destroy(self):
         self.__ready = False
-        self.scheduler.stop()
-        self.sources.close()
-        self.mail.close()
-        self.db.close()
+        if "scheduler" in self.__dict__:
+            self.scheduler.stop()
+        if "sources" in self.__dict__:
+            self.sources.close()
+        if "mail" in self.__dict__:
+            self.mail.close()
+        if "db" in self.__dict__:
+            self.db.close()
+        if "lsp" in self.__dict__:
+            self.lsp.stop()
+        if "translations" in self.__dict__:
+            self.translator.close()
 
     def setup(
         self,

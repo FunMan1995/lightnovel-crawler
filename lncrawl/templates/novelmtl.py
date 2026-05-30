@@ -1,5 +1,5 @@
-import time
 from concurrent.futures import Future
+import time
 from typing import Iterable, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -47,13 +47,13 @@ class NovelMTLTemplate(BrowserTemplate):
 
     def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
-        yield from soup.select(self.chapter_list_selector)
+        yield from tag.select(self.chapter_list_selector)
 
-        paginations = soup.select(self.pagination_selector)
+        paginations = tag.select(self.pagination_selector)
         if not paginations:
             return
 

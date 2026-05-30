@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
-import unicodedata
 from typing import Any, Iterable, List
+import unicodedata
 
 from lncrawl.core import BrowserTemplate, Chapter, PageSoup
 
@@ -19,36 +19,12 @@ class FreewebnovelTemplate(BrowserTemplate):
     def initialize(self) -> None:
         self.taskman.init_executor(workers=2)
         self.cleaner.bad_tags.update(["h4", "sub"])
-        self.cleaner.bad_tag_text_pairs.update(
-            {
-                "p": [
-                    r"freewebnovel\.com",
-                    r"innread\.com",
-                    r"bednovel\.com",
-                    r"Updates by Freewebnovel\. com",
-                    r"” Search Freewebnovel\.com\. on google”\.",
-                    r"\/ Please Keep reading on MYFreeWebNovel\.C0M",
-                    r"please keep reading on Freewebnovel\(dot\)C0M",
-                    r"Continue\_reading on Freewebnovel\.com",
-                    r"Continue \-reading on Freewebnovel\.com",
-                    r"\/ Please Keep reading 0n FreewebNOVEL\.C0M",
-                    r"\[ Follow current novels on Freewebnovel\.com \]",
-                    r"‘Freewebnovel\.com\*’",
-                    r"‘Search Freewebnovel\.com\, on google’",
-                    r"‘ Search Freewebnovel\.com\(\) ‘",
-                    r"“Freewebnovel\.com \.”",
-                    r"“Please reading on Freewebnovel\.com\.”",
-                    r"“Search Freewebnovel\.com\. on google”",
-                    r"“Read more on Freewebnovel\.com\. org”",
-                    r"Thank you for reading on FreeWebNovel\.me",
-                    r"Please reading \-on Freewebnovel\.com",
-                    r"”Search \(Freewebnovel\.com\(\) on google\”\?",
-                    r"“Please reading on Freewebnovel\.com \:”",
-                    r"”Please reading on Freewebnovel\.com\.”\?",
-                    r"“Please reading on Freewebnovel\.com\&gt\; ”",
-                ],
-                "i": [r"\[ Follow current novels on Freewebnovel\.com \]"],
-            }
+        self.cleaner.bad_text_regex.update(
+            [
+                r"Updates by Freewebnovel\. com",
+                r"” Search Freewebnovel\.com\. on google”\.",
+                r"[\w\s]+[fF]ree\s?[Ww]eb\s?[nN]ovel[.\s]?([cC][oO0][mM])?",
+            ]
         )
 
     def select_search_item_list(self, query: str) -> Iterable[PageSoup]:
@@ -84,5 +60,5 @@ class FreewebnovelTemplate(BrowserTemplate):
         for promo_selector in selectors:
             normalized_soup.decompose(promo_selector)
 
-        contents = normalized_soup.select_one(".txt")
+        contents = normalized_soup.select_one(".txt") or normalized_soup
         chapter.body = self.cleaner.extract_contents(contents)

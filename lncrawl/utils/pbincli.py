@@ -2,16 +2,16 @@
 Source: https://github.com/r4sas/PBinCLI/blob/master/pbincli/format.py
 """
 
-import json
-import logging
-import ntpath
-import os
-import zlib
 from base64 import b64decode, b64encode
 from hashlib import sha256
+import json
 from json import loads as json_decode
+import logging
 from mimetypes import guess_type
+import ntpath
+import os
 from typing import Any
+import zlib
 
 from base58 import b58decode, b58encode
 from Crypto.Cipher import AES

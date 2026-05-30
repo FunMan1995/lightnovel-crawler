@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
+from functools import cached_property
 import logging
 import re
-from functools import cached_property
 from time import time
 from typing import Iterable
 from urllib.parse import urlencode, urlparse

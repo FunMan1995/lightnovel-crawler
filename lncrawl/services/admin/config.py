@@ -1,10 +1,21 @@
 from __future__ import annotations
 
+from functools import cached_property, lru_cache
 import inspect
 import re
 import sys
-from functools import cached_property, lru_cache
-from typing import Annotated, Any, Iterable, List, Optional, Tuple, Union, get_args, get_origin
+from typing import (
+    Annotated,
+    Any,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from ...config import Sensitive, _deserialize, _Section, _serialize
 from ...context import ctx
@@ -74,7 +85,7 @@ def _parse_property_doc(doc: Optional[str], attr_name: str) -> Tuple[str, str]:
 
 
 def _get_value_kind(attr: property) -> Tuple[str, bool]:
-    anns = inspect.get_annotations(attr.fget, eval_str=True)
+    anns = get_type_hints(attr.fget, include_extras=True)
     return_type = anns.get("return")
     if return_type is None:
         return "any", False

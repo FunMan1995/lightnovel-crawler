@@ -1,9 +1,6 @@
 from datetime import datetime
 
-import questionary
 import typer
-from rich import print
-from rich.text import Text
 
 from ...context import ctx
 from .app import app
@@ -12,41 +9,35 @@ from .app import app
 @app.command("view", help="Inspect a source.")
 def view_one(
     query: str = typer.Argument(
-        help="The crawler name, url, or file path to find exact source.",
+        help="The source name, url, or file path to find exact source.",
     ),
 ):
+    import questionary
+    from rich import print
+    from rich.text import Text
+
     # Find unique source
     sources = ctx.sources.list(query, include_rejected=True)
     if not sources:
-        print("[red]No crawler found.[/red]")
+        print("[red]No source found.[/red]")
         return
 
     if len(sources) > 5:
-        print("[i]Please modify your query to find a unique crawler![/i]")
-        print(f"[red]{len(sources)} crawlers found.[/red]")
+        print("[i]Please modify your query to find a unique source![/i]")
+        print(f"[red]{len(sources)} sources found.[/red]")
         return
 
     if len(sources) != 1:
-        item, current_file = questionary.select(
-            "Choose a crawler",
-            choices=[
-                questionary.Choice(url, value=(item.info, item.current_file))
-                for item in sources
-                for url in item.info.base_urls
-            ],
+        item = questionary.select(
+            "Choose a source",
+            choices=[questionary.Choice(item.url, value=(item)) for item in sources],
         ).unsafe_ask()
     else:
-        item = sources[0].info
-        current_file = sources[0].current_file
+        item = sources[0]
 
     # Display supported urls
-    print("[green]:right_arrow: Supports:[/green]", end="")
-    if len(item.base_urls) > 1:
-        print()
-        for url in item.base_urls:
-            print(f"  - [cyan]{url}[/cyan]")
-    else:
-        print(f" [cyan]{item.base_urls[0]}[/cyan]")
+    print("[green]:right_arrow: URL:[/green]", end="")
+    print(f" [cyan]{item.url}[/cyan]")
 
     # Display features
     features = []
@@ -83,7 +74,7 @@ def view_one(
     # Display source file
     print(
         "[green]:right_arrow: Source file:[/green]",
-        Text(str(current_file), style="cyan", no_wrap=True),
+        Text(str(item.file_path), style="cyan", no_wrap=True),
     )
 
     # Display download link

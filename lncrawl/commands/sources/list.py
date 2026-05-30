@@ -3,11 +3,8 @@ import json
 import sys
 from typing import Optional
 
-import typer
-import yaml
 from rich import print
-from rich.table import Table
-from rich.text import Text
+import typer
 
 from ...assets.icons import Icons
 from ...context import ctx
@@ -62,6 +59,10 @@ def list_all(
     Display a list of supported crawler sources.
     Filters can be combined to narrow down the results.
     """
+    from rich.table import Table
+    from rich.text import Text
+    import yaml
+
     sources = ctx.sources.list(
         query=query,
         include_rejected=include_rejected,
@@ -94,10 +95,10 @@ def list_all(
             table.add_row(
                 str(i),
                 url,
-                yes_no[item.info.can_search],
-                yes_no[item.info.can_login],
-                yes_no[item.info.has_manga],
-                yes_no[item.info.has_mtl],
+                yes_no[item.can_search],
+                yes_no[item.can_login],
+                yes_no[item.has_manga],
+                yes_no[item.has_mtl],
             )
         print(table)
     elif output_type in ["json", "yaml", "yml"]:
@@ -105,13 +106,13 @@ def list_all(
             {
                 "url": item.url,
                 "version": item.version,
-                "file": str(item.info.file_path),
+                "file": str(item.file_path),
                 "language": str(item.language),
                 "features": {
-                    "Search": bool(item.info.can_search),
-                    "Login": bool(item.info.can_login),
-                    "Manga": bool(item.info.has_manga),
-                    "MTL": bool(item.info.has_mtl),
+                    "Search": bool(item.can_search),
+                    "Login": bool(item.can_login),
+                    "Manga": bool(item.has_manga),
+                    "MTL": bool(item.has_mtl),
                 },
                 "disabled": item.disable_reason if item.is_disabled else False,
             }
@@ -129,19 +130,19 @@ def list_all(
                 [
                     i,
                     item.url,
-                    item.info.can_search,
-                    item.info.can_login,
-                    item.info.has_manga,
-                    item.info.has_mtl,
+                    item.can_search,
+                    item.can_login,
+                    item.has_manga,
+                    item.has_mtl,
                 ]
             )
     elif output_type == "text":
         for i, item in enumerate(sources):
             features = {
-                "Search": item.info.can_search,
-                "Login": item.info.can_login,
-                "Manga": item.info.has_manga,
-                "MTL": item.info.has_mtl,
+                "Search": item.can_search,
+                "Login": item.can_login,
+                "Manga": item.has_manga,
+                "MTL": item.has_mtl,
             }
             enabled_features = [feature for feature, enabled in features.items() if enabled]
             feature_list = ", ".join(enabled_features)

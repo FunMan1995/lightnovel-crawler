@@ -56,19 +56,19 @@ class ScribbleHubCrawler(BrowserTemplate):
     #     self.visit(self.novel_url)
     #     self.browser.wait(".fictionposts-template-default")
 
-    def parse_chapter_tags(
+    def select_chapter_tags(
         self,
-        soup: PageSoup,
+        tag: PageSoup,
         novel: Novel,
         volume: Optional[Volume] = None,
     ) -> Iterable[PageSoup]:
         chapter_count = -1
-        chapter_count_tag = soup.select_one("span.cnt_toc")
+        chapter_count_tag = tag.select_one("span.cnt_toc")
         if chapter_count_tag.text.isdigit():
             chapter_count = int(chapter_count_tag.text)
         novel.chapter_count = chapter_count
 
-        mypostid_tag = soup.select_one("input#mypostid[value]")
+        mypostid_tag = tag.select_one("input#mypostid[value]")
         mypostid = int(str(mypostid_tag["value"]))
         novel.mypostid = mypostid
 
@@ -80,8 +80,8 @@ class ScribbleHubCrawler(BrowserTemplate):
                 "mypostid": mypostid,
             },
         )
-        soup = self.scraper.make_soup(response)
-        return reversed(soup.select(self.chapter_list_selector))
+        tag = self.scraper.make_soup(response)
+        return reversed(tag.select(self.chapter_list_selector))
 
     # def parse_chapter_list_in_browser(
     #     self,
